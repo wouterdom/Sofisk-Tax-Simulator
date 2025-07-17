@@ -65,7 +65,6 @@
     <div class="bg-white border rounded-xl shadow-sm p-6">
       <h3 class="text-xl font-bold text-gray-900 mb-6">Vereenvoudigde aangifte</h3>
       <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
-        <h4 class="font-semibold text-blue-900 mb-2 text-sm">Berekeningsinstellingen</h4>
         <div class="space-y-2">
           <label class="flex items-center space-x-2 cursor-pointer group">
             <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
@@ -98,8 +97,8 @@
           <span class="ml-2 text-sm text-gray-500">€</span>
         </div>
         <div class="flex justify-between items-center py-3 mt-4 px-4">
-          <span class="text-sm font-semibold text-gray-900">Resultaat van het belastbaar tijdperk (code 1410)</span>
-          <span class="text-sm font-semibold text-gray-900">€ 500.000</span>
+          <span class="text-base font-medium text-gray-900 underline text-left">Resultaat van het belastbaar tijdperk (code 1410)</span>
+          <span class="text-base font-medium text-gray-900 underline text-left">€ 500.000</span>
         </div>
       </div>
       <!-- Aftrekken van de resterende winst (foldable) -->
@@ -158,11 +157,12 @@
             </div>
             <!-- Placeholder for more fields -->
           </div>
-          <div class="flex justify-between items-center py-3 mt-4 px-4">
-            <span class="text-sm font-semibold text-gray-900">Belastbare winst gewoon tarief (Code 1460)</span>
-            <span class="text-sm font-semibold text-gray-900">€ 0</span>
-          </div>
         </div>
+      </div>
+      <!-- Subtotal: Belastbare winst gewoon tarief (Code 1460) -->
+      <div class="flex justify-between items-center py-3 mt-4 px-4 border-t border-gray-200">
+        <span class="text-base font-medium text-gray-900 underline text-left">Belastbare winst gewoon tarief (Code 1460)</span>
+        <span class="text-base font-medium text-gray-900 underline text-left">€ 0</span>
       </div>
       <!-- Aftrekken resterende winst - korfbeperking (foldable) -->
       <div class="mt-6">
