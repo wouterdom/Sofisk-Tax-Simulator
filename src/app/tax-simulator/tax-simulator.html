@@ -1,0 +1,44 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-teal-500 to-blue-600 px-6 py-4">
+      <h1 class="text-2xl font-bold text-white">Belastingsimulator</h1>
+      <p class="text-teal-100 mt-1">Projecteer uw belastingverplichtingen en optimaliseer voorschotten</p>
+    </div>
+    <div class="p-6">
+      <!-- Stepper Navigation -->
+      <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center space-x-4 cursor-pointer" (click)="goToStep(1)">
+          <div class="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
+               [ngClass]="step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-blue-100 hover:text-blue-600'">
+            <span class="text-sm font-medium">1</span>
+          </div>
+          <span class="text-sm font-medium transition-colors duration-150"
+                [ngClass]="step === 1 ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'">Belastingverplichtingen bepalen</span>
+        </div>
+        <span class="w-5 h-5 text-gray-400">→</span>
+        <div class="flex items-center space-x-4 cursor-pointer" (click)="goToStep(2)">
+          <div class="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
+               [ngClass]="step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-blue-100 hover:text-blue-600'">
+            <span class="text-sm font-medium">2</span>
+          </div>
+          <span class="text-sm font-medium transition-colors duration-150"
+                [ngClass]="step === 2 ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'">Voorschotten optimaliseren</span>
+        </div>
+      </div>
+      <!-- Step 1: Calculate Taxes -->
+      <div *ngIf="step === 1">
+        <app-tax-calculation-step [inputMethod]="inputMethod" (inputMethodChange)="setInputMethod($event)"></app-tax-calculation-step>
+        <div class="flex justify-end mt-8">
+          <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition-colors" (click)="goToStep(2)">Volgende stap</button>
+        </div>
+      </div>
+      <!-- Step 2: Optimize Prepayments -->
+      <div *ngIf="step === 2">
+        <app-prepayment-step></app-prepayment-step>
+        <div class="flex justify-start mt-8">
+          <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition-colors" (click)="goToStep(1)">Terug naar stap 1</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
