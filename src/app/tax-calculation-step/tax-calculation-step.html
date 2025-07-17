@@ -56,13 +56,13 @@
       </p>
     </div>
     <div class="flex justify-end text-gray-700 text-sm mt-2">
-      Resultaat na aftrekken <span class="ml-2 font-semibold">€ 0</span>
+      <!-- Removed: Resultaat na aftrekken -->
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
     <!-- Left: Vereenvoudigde aangifte -->
-    <div class="bg-white border rounded-xl shadow-sm p-6">
+    <div class="bg-white border rounded-xl shadow-sm p-6 h-full flex flex-col">
       <h3 class="text-xl font-bold text-gray-900 mb-6">Vereenvoudigde aangifte</h3>
       <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
         <div class="space-y-2">
@@ -78,27 +78,12 @@
       </div>
       <!-- Input fields -->
       <div class="space-y-4">
-        <div class="flex items-center mb-2">
-          <span class="flex-1 text-gray-700">Belastbare gereserveerde winst</span>
-          <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1080 PN</span>
-          <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="500000" />
-          <span class="ml-2 text-sm text-gray-500">€</span>
-        </div>
-        <div class="flex items-center mb-2">
-          <span class="flex-1 text-gray-700">Verworpen uitgaven</span>
-          <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1240</span>
-          <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-          <span class="ml-2 text-sm text-gray-500">€</span>
-        </div>
-        <div class="flex items-center mb-2">
-          <span class="flex-1 text-gray-700">Uitgekeerde dividenden</span>
-          <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1320</span>
-          <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-          <span class="ml-2 text-sm text-gray-500">€</span>
-        </div>
-        <div class="flex justify-between items-center py-3 mt-4 px-4">
-          <span class="text-base font-medium text-gray-900 underline text-left">Resultaat van het belastbaar tijdperk (code 1410)</span>
-          <span class="text-base font-medium text-gray-900 underline text-left">€ 500.000</span>
+        <div *ngFor="let code of declarationCodes" class="flex items-center mb-2">
+          <span class="flex-1 text-gray-700">{{ code.code }}</span>
+          <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" [value]="code.value" />
+          <span class="ml-2 text-sm text-gray-500">
+            {{ code.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
+          </span>
         </div>
       </div>
       <!-- Aftrekken van de resterende winst (foldable) -->
@@ -276,112 +261,107 @@
       <!-- Add more sections as in the screenshot if needed -->
     </div>
     <!-- Right: Te betalen belasting -->
-    <div class="bg-white border rounded-xl shadow-sm p-6">
-      <h3 class="text-xl font-bold text-gray-900 mb-6">Te betalen belasting</h3>
-      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-white rounded-t-xl">
-        <h4 class="font-bold text-lg">Gewone aanslag</h4>
-      </div>
-      <div class="bg-white rounded-b-xl p-6 border border-blue-200 border-t-0">
-        <div class="flex justify-between items-center mb-4">
-          <span class="font-semibold text-blue-900">Belastbaar resultaat</span>
-          <span class="font-bold text-blue-900 text-lg">€ 0</span>
+    <div class="bg-white border rounded-xl shadow-sm p-4 h-full flex flex-col justify-between w-full" style="max-width: none;">
+      <h3 class="text-xl font-bold text-gray-900 mb-1 mt-0">Te betalen belasting</h3>
+      <!-- Section: Gewone aanslagen -->
+      <div class="mb-0 w-full">
+        <div class="font-semibold text-base text-gray-700 mb-0 mt-0">Gewone aanslagen</div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 font-semibold border-b pb-1 w-full text-sm mt-0">
+          <span class="text-sm">Omschrijving</span>
+          <span class="text-sm">Code</span>
+          <span class="text-sm text-right">Basis</span>
+          <span class="text-sm text-right">Tarief</span>
+          <span class="text-sm text-right">Resultaat</span>
         </div>
-        <div class="bg-gray-50 px-4 py-3 mb-4 rounded-lg">
-          <div class="grid grid-cols-4 gap-4 text-sm font-semibold text-gray-700">
-            <div>(Omschrijving)</div>
-            <div class="text-right">Waarde</div>
-            <div class="text-right">Tarief</div>
-            <div class="text-right">Belasting</div>
-          </div>
+        <!-- Mock data rows for gewone aanslagen -->
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Belastbaar tegen gewoon tarief</span>
+          <span>1460</span>
+          <span class="text-right">3.000.000,00</span>
+          <span class="text-right">25,00%</span>
+          <span class="text-right">750.000,00</span>
         </div>
-        <div class="mb-4 bg-white rounded-lg p-4 border border-gray-200">
-          <div class="font-semibold text-sm mb-3 text-gray-800">Belastbaar tegen gewoon tarief</div>
-          <div class="grid grid-cols-4 gap-4 text-sm py-2">
-            <div class="pl-4 text-gray-600">Verlaagd tarief</div>
-            <div class="text-right text-gray-600">€ -</div>
-            <div class="text-right text-gray-600">20,00%</div>
-            <div class="text-right text-gray-600">€ -</div>
-          </div>
-          <div class="grid grid-cols-4 gap-4 text-sm py-2 bg-green-50 rounded px-2">
-            <div class="pl-4 font-medium">Gewoon tarief</div>
-            <div class="text-right font-medium">€ 0</div>
-            <div class="text-right font-medium">25,00%</div>
-            <div class="text-right font-bold text-green-700">€ 0</div>
-          </div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Belastbaar tegen verlaagd tarief op de eerste schijf van 100.000 EUR</span>
+          <span>1460</span>
+          <span class="text-right">0,00</span>
+          <span class="text-right">20,00%</span>
+          <span class="text-right">0,00</span>
         </div>
-        <div class="mb-4 bg-white rounded-lg p-4 border border-gray-200">
-          <div class="font-semibold text-sm mb-3 text-gray-800">Meerwaarde op aandelen</div>
-          <div class="grid grid-cols-4 gap-4 text-sm py-2 bg-green-50 rounded px-2">
-            <div class="pl-4 font-medium">belastbaar tegen 25%</div>
-            <div class="text-right font-medium">€ 200.000</div>
-            <div class="text-right font-medium">25,00%</div>
-            <div class="text-right font-bold text-green-700">€ 50.000</div>
-          </div>
-          <div class="grid grid-cols-4 gap-4 text-sm py-2">
-            <div class="pl-4 text-gray-600">belastbaar 20% (KMO & belastbare basis ≤ 0)</div>
-            <div class="text-right text-gray-600">€ -</div>
-            <div class="text-right text-gray-600">20,00%</div>
-            <div class="text-right text-gray-600">€ -</div>
-          </div>
-          <div class="grid grid-cols-4 gap-4 text-sm py-2">
-            <div class="pl-4 text-gray-600">crisisbijdrage</div>
-            <div class="text-right text-gray-600">€ -</div>
-            <div class="text-right text-gray-600">2,00%</div>
-            <div class="text-right text-gray-600">€ -</div>
-          </div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Verwezenlijkte meerwaarden en voorzieningen voor risico’s en kosten belastbaar tegen 33,99%</span>
+          <span>1468</span>
+          <span class="text-right">0,00</span>
+          <span class="text-right">33,99%</span>
+          <span class="text-right">0,00</span>
         </div>
-        <div class="border-t-2 border-blue-300 pt-4 mb-4">
-          <div class="grid grid-cols-4 gap-4 text-sm font-bold bg-blue-50 p-3 rounded-lg">
-            <div class="text-blue-900">Totaal alvorens voorafbetalingen en aparte aanslag <sup>(1)</sup></div>
-            <div></div>
-            <div></div>
-            <div class="text-right text-blue-900 text-lg">€ 50.000</div>
-          </div>
-        </div>
-        <div class="space-y-1 text-sm mb-3">
-          <div class="grid grid-cols-4 gap-4">
-            <div>- niet terugbetaalbare voorheffingen</div>
-            <div></div>
-            <div></div>
-            <div class="text-right">€ 0</div>
-          </div>
-          <div class="grid grid-cols-4 gap-4">
-            <div>- terugbetaalbare voorheffingen</div>
-            <div></div>
-            <div></div>
-            <div class="text-right">€ 0</div>
-          </div>
-          <div class="grid grid-cols-4 gap-4">
-            <div>- in aanmerking te nemen voorafbetaling</div>
-            <div></div>
-            <div></div>
-            <div class="text-right">€ -</div>
-          </div>
-          <div class="grid grid-cols-4 gap-4 text-red-600">
-            <div>+ vermeerdering voorafbetalingen</div>
-            <div></div>
-            <div></div>
-            <div class="text-right">€ 38.677,50</div>
-          </div>
-        </div>
-        <div class="border-t border-gray-200 pt-4 mb-4">
-          <div class="font-semibold text-sm mb-3 text-gray-800">Afzonderlijke aanslag</div>
-          <div class="grid grid-cols-4 gap-4 text-sm py-2 bg-orange-50 rounded px-2">
-            <div class="pl-4 font-medium">Liquidatiereserve</div>
-            <div class="text-right font-medium">€ 0</div>
-            <div class="text-right font-medium">10%</div>
-            <div class="text-right font-bold text-orange-700">€ 0</div>
-          </div>
-        </div>
-        <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 text-white rounded-b-xl">
-          <div class="grid grid-cols-4 gap-4">
-            <div class="font-bold text-lg">Totaal te betalen belasting</div>
-            <div></div>
-            <div></div>
-            <div class="text-right font-bold text-2xl">€ 50.000</div>
-          </div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Verwezenlijkte meerwaarden en voorzieningen voor risico’s en kosten belastbaar tegen 29,58%</span>
+          <span>1474</span>
+          <span class="text-right">0,00</span>
+          <span class="text-right">29,58%</span>
+          <span class="text-right">0,00</span>
         </div>
       </div>
+      <!-- Section: Voorheffingen -->
+      <div class="mb-2 w-full">
+        <div class="font-semibold text-base text-gray-700 mb-1">Voorheffingen</div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Niet-terugbetaalbare voorheffingen</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="text-right">0,00</span>
+        </div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Terugbetaalbare voorheffingen</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="text-right">0,00</span>
+        </div>
+      </div>
+      <!-- Section: Voorafbetalingen -->
+      <div class="mb-2 w-full">
+        <div class="font-semibold text-base text-gray-700 mb-1">Voorafbetalingen</div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Vermeerdering wegens ontoereikende VA</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="text-right">50.625,00</span>
+        </div>
+      </div>
+      <!-- Section: Afzonderlijke aanslagen -->
+      <div class="mb-2 w-full">
+        <div class="font-semibold text-base text-gray-700 mb-1">Afzonderlijke aanslagen</div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve</span>
+          <span>1508</span>
+          <span class="text-right">0,00</span>
+          <span class="text-right">10,00%</span>
+          <span class="text-right">0,00</span>
+        </div>
+      </div>
+      <!-- Section: Resultaat -->
+      <div class="mb-2 w-full">
+        <div class="font-semibold text-base text-gray-700 mb-1">Resultaat</div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Te betalen belastingen</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="text-right">1.800.624,00</span>
+        </div>
+        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+          <span class="text-gray-700">Terug te vorderen belastingen</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="text-right">0,00</span>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500 mt-2">Alle bedragen zijn mock-up data en worden later vervangen door berekende waarden.</div>
     </div>
   </div>
 </div>

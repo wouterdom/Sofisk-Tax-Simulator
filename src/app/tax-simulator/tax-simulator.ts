@@ -1,18 +1,25 @@
 import { Component } from '@angular/core';
-import { NgClass, NgIf } from '@angular/common';
+import { NgClass, NgIf, CurrencyPipe, NgSwitch, NgSwitchCase } from '@angular/common';
 import { TaxCalculationStep } from '../tax-calculation-step/tax-calculation-step';
 import { PrepaymentStep } from '../prepayment-step/prepayment-step';
+import { HttpClient } from '@angular/common/http';
+import { OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-tax-simulator',
   standalone: true,
-  imports: [NgClass, NgIf, TaxCalculationStep, PrepaymentStep],
+  imports: [NgClass, NgIf, CurrencyPipe, NgSwitch, NgSwitchCase, TaxCalculationStep, PrepaymentStep],
   templateUrl: './tax-simulator.html',
   styleUrl: './tax-simulator.css'
 })
-export class TaxSimulatorComponent {
+export class TaxSimulatorComponent implements OnInit {
   step = 1;
   inputMethod: 'manual' | 'previous' | 'upload' = 'manual';
+
+  showAftrekkenResterendeWinst = true;
+  showAftrekkenKorbeperking = true;
+  showAfzonderlijkTeBelasten = true;
+  showVoorheffing = true;
 
   // Dummy data for all fields
   taxData = {
@@ -51,6 +58,16 @@ export class TaxSimulatorComponent {
   majoration = 50000;
   bonification = 0;
   finalBalance = 50000;
+
+  declarationCodes: any[] = [];
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit() {
+    this.http.get<any[]>('assets/declaration-codes.json').subscribe(data => {
+      this.declarationCodes = data;
+    });
+  }
 
   goToStep(step: number) {
     this.step = step;

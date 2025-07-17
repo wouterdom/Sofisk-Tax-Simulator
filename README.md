@@ -54,6 +54,14 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## Current State: Layout-Only Prototype
+
+This project currently implements only the front-end layout and UI/UX for the Belgian corporate tax simulator.
+**No calculation or business logic is present yet.**
+All data shown in the app is dummy data, loaded from a static JSON file (`src/assets/declaration-codes.json`) for demonstration purposes.
+
+When ready, calculation logic and real data integration will be added.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
