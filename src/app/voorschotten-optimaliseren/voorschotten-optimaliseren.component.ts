@@ -3,13 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { NgFor } from '@angular/common';
 
 @Component({
-  selector: 'app-prepayment-step',
+  selector: 'app-voorschotten-optimaliseren',
   standalone: true,
   imports: [FormsModule, NgFor],
-  templateUrl: './prepayment-step.html',
-  styleUrl: './prepayment-step.css'
+  templateUrl: './voorschotten-optimaliseren.component.html',
+  styleUrl: './voorschotten-optimaliseren.component.css'
 })
-export class PrepaymentStep {
+export class VoorschottenOptimaliserenComponent {
   optimizationGoal: string = 'spread';
 
   optimizationOptions = [

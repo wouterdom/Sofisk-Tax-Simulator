@@ -1,47 +1,45 @@
-<div class="space-y-8">
-  <!-- Input Method Selector -->
-  <div class="bg-white border border-teal-200 rounded-lg p-6">
+<!-- Top section: Two columns, same height, no extra whitespace -->
+<div class="flex flex-col lg:flex-row gap-4 w-full mb-4 min-h-[260px] h-full">
+  <!-- Left column: Invoermethode (3 cards + info box) -->
+  <div class="w-full lg:w-1/2 flex flex-col h-full flex-1 bg-white border border-teal-200 rounded-lg p-4">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-      <div class="border rounded-lg p-4 cursor-pointer transition-all"
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-1">
+      <div class="border rounded-lg p-2 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
            [ngClass]="inputMethod === 'manual' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
            (click)="selectMethod('manual')">
         <div class="flex items-center space-x-3">
-          <!-- Calculator SVG -->
-          <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 11h.01"/><path d="M12 11h.01"/><path d="M15 11h.01"/><path d="M9 15h.01"/><path d="M12 15h.01"/><path d="M15 15h.01"/></svg>
+          <span class="text-2xl">📄</span>
           <div>
-            <h4 class="font-medium text-gray-900">Handmatige invoer</h4>
-            <p class="text-sm text-gray-600">Voer bekende bedragen direct in</p>
+            <h4 class="font-medium text-gray-900 text-sm">Handmatige invoer</h4>
+            <p class="text-xs text-gray-600">Voer bekende bedragen direct in</p>
           </div>
         </div>
       </div>
-      <div class="border rounded-lg p-4 cursor-pointer transition-all"
+      <div class="border rounded-lg p-2 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
            [ngClass]="inputMethod === 'previous' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
            (click)="selectMethod('previous')">
         <div class="flex items-center space-x-3">
-          <!-- FileText SVG -->
-          <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span class="text-2xl">🗂️</span>
           <div>
-            <h4 class="font-medium text-gray-900">Vorig jaar als basis</h4>
-            <p class="text-sm text-gray-600">Start met cijfers van vorige aangifte</p>
+            <h4 class="font-medium text-gray-900 text-sm">Vorig jaar als basis</h4>
+            <p class="text-xs text-gray-600">Start met cijfers van vorige aangifte</p>
           </div>
         </div>
       </div>
-      <div class="border rounded-lg p-4 cursor-pointer transition-all"
+      <div class="border rounded-lg p-2 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
            [ngClass]="inputMethod === 'upload' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
            (click)="selectMethod('upload')">
         <div class="flex items-center space-x-3">
-          <!-- Upload SVG -->
-          <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="text-2xl">⬆️</span>
           <div>
-            <h4 class="font-medium text-gray-900">Voorlopige P&V</h4>
-            <p class="text-sm text-gray-600">Upload tussentijdse proef- en saldibalans</p>
+            <h4 class="font-medium text-gray-900 text-sm">Voorlopige P&V</h4>
+            <p class="text-xs text-gray-600">Upload tussentijdse proef- en saldibalans</p>
           </div>
         </div>
       </div>
     </div>
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 mb-2">
-      <p class="text-sm text-blue-800">
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2 mb-2">
+      <p class="text-xs text-blue-800">
         <ng-container [ngSwitch]="inputMethod">
           <ng-container *ngSwitchCase="'manual'">
             <strong>Handmatige invoer:</strong> Voer de verwachte bedragen direct in voor een snelle berekening. U kunt deze waarden op elk moment aanpassen.
@@ -55,27 +53,38 @@
         </ng-container>
       </p>
     </div>
-    <div class="flex justify-end text-gray-700 text-sm mt-2">
-      <!-- Removed: Resultaat na aftrekken -->
+  </div>
+  <!-- Right column: Two summary cards side by side, then checkboxes -->
+  <div class="w-full lg:w-1/2 flex flex-col h-full flex-1 min-h-0">
+    <div class="flex flex-row gap-4 flex-1 min-h-0">
+      <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
+        <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Vermeerdering wegens ontoereikende VA</h4>
+        <div class="text-base font-bold text-cyan-700 text-center">50.625,00</div>
+      </div>
+      <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
+        <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Te betalen belastingen</h4>
+        <div class="text-base font-bold text-rose-700 text-center">1.800.624,00</div>
+      </div>
+    </div>
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-2 w-full mt-2">
+      <div class="space-y-2">
+        <label class="flex items-center space-x-2 cursor-pointer group">
+          <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
+          <span class="text-xs text-blue-800 group-hover:text-blue-900 transition-colors">De vennootschap kan bij uw weten aanspraak maken op het verminderd tarief van 20% op de eerste schijf van 100.000 euro (code 1701)</span>
+        </label>
+        <label class="flex items-center space-x-2 cursor-pointer group">
+          <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
+          <span class="text-xs text-blue-800 group-hover:text-blue-900 transition-colors">Deze aangifte heeft betrekking op één van de eerste drie boekjaren vanaf de oprichting van de vennootschap die een 'kleine vennootschap' is (code 1801)</span>
+        </label>
+      </div>
     </div>
   </div>
+</div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+  <div class="flex flex-col lg:flex-row gap-8 items-stretch w-full">
     <!-- Left: Vereenvoudigde aangifte -->
-    <div class="bg-white border rounded-xl shadow-sm p-6 h-full flex flex-col">
+    <div class="bg-white border rounded-xl shadow-sm p-6 flex-1 min-h-full flex flex-col w-full lg:w-1/2">
       <h3 class="text-xl font-bold text-gray-900 mb-6">Vereenvoudigde aangifte</h3>
-      <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
-        <div class="space-y-2">
-          <label class="flex items-center space-x-2 cursor-pointer group">
-            <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
-            <span class="text-xs text-blue-800 group-hover:text-blue-900 transition-colors">De vennootschap kan bij uw weten aanspraak maken op het verminderd tarief van 20% op de eerste schijf van 100.000 euro (code 1701)</span>
-          </label>
-          <label class="flex items-center space-x-2 cursor-pointer group">
-            <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
-            <span class="text-xs text-blue-800 group-hover:text-blue-900 transition-colors">Deze aangifte heeft betrekking op één van de eerste drie boekjaren vanaf de oprichting van de vennootschap die een 'kleine vennootschap' is (code 1801)</span>
-          </label>
-        </div>
-      </div>
       <!-- Input fields -->
       <div class="space-y-4">
         <div *ngFor="let code of declarationCodes" class="flex items-center mb-2">
@@ -255,7 +264,7 @@
       <!-- Add more sections as in the screenshot if needed -->
     </div>
     <!-- Right: Te betalen belasting -->
-    <div class="bg-white border rounded-xl shadow-sm p-4 h-full flex flex-col justify-between w-full" style="max-width: none;">
+    <div class="bg-white border rounded-xl shadow-sm p-6 flex-1 min-h-full flex flex-col w-full lg:w-1/2">
       <h3 class="text-xl font-bold text-gray-900 mb-1 mt-0">Te betalen belasting</h3>
       <!-- Section: Gewone aanslagen -->
       <div class="mb-0 w-full">
@@ -358,4 +367,3 @@
       <div class="text-xs text-gray-500 mt-2">Alle bedragen zijn mock-up data en worden later vervangen door berekende waarden.</div>
     </div>
   </div>
-</div>
