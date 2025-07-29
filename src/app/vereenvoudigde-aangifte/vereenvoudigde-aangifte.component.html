@@ -1,7 +1,7 @@
 <!-- Top section: Two columns, same height, no extra whitespace -->
-<div class="flex flex-col lg:flex-row gap-4 w-full mb-4 min-h-[260px] h-full">
+<div class="flex flex-col lg:flex-row gap-4 w-full mb-4">
   <!-- Left column: Invoermethode (3 cards + info box) -->
-  <div class="w-full lg:w-1/2 flex flex-col h-full flex-1 bg-white border border-teal-200 rounded-lg p-4">
+  <div class="w-full lg:w-1/2 flex flex-col bg-white border border-teal-200 rounded-lg p-4 h-[220px]">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-1">
       <div class="border rounded-lg p-2 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
@@ -54,19 +54,11 @@
       </p>
     </div>
   </div>
-  <!-- Right column: Two summary cards side by side, then checkboxes -->
-  <div class="w-full lg:w-1/2 flex flex-col h-full flex-1 min-h-0">
-    <div class="flex flex-row gap-4 flex-1 min-h-0">
-      <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
-        <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Vermeerdering wegens ontoereikende VA</h4>
-        <div class="text-base font-bold text-cyan-700 text-center">50.625,00</div>
-      </div>
-      <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
-        <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Te betalen belastingen</h4>
-        <div class="text-base font-bold text-rose-700 text-center">1.800.624,00</div>
-      </div>
-    </div>
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-2 w-full mt-2">
+  <!-- Right column: Key Elements section -->
+  <div class="w-full lg:w-1/2 flex flex-col bg-white border border-teal-200 rounded-lg p-4 h-[220px]">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Key Elements</h3>
+    <!-- Checkboxes above the cards -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-2 w-full mb-4">
       <div class="space-y-2">
         <label class="flex items-center space-x-2 cursor-pointer group">
           <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
@@ -76,6 +68,17 @@
           <input type="checkbox" checked class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500 transition-colors" />
           <span class="text-xs text-blue-800 group-hover:text-blue-900 transition-colors">Deze aangifte heeft betrekking op één van de eerste drie boekjaren vanaf de oprichting van de vennootschap die een 'kleine vennootschap' is (code 1801)</span>
         </label>
+      </div>
+    </div>
+    <!-- Two summary cards side by side -->
+    <div class="flex flex-row gap-4 flex-1 min-h-0">
+      <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
+        <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Vermeerdering wegens ontoereikende VA</h4>
+        <div class="text-base font-bold text-cyan-700 text-center">50.625,00</div>
+      </div>
+      <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
+        <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Te betalen belastingen</h4>
+        <div class="text-base font-bold text-rose-700 text-center">1.800.624,00</div>
       </div>
     </div>
   </div>
