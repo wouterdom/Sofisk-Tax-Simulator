@@ -51,7 +51,7 @@
         class="text-sm text-blue-600"
       >
         {{
-          (calculationResults.suggestedPrepayments[quarter] ?? 0)
+          (getSuggestedPrepayment(quarter) ?? 0)
             | currency: 'EUR':'symbol':'1.2-2':'nl-BE'
         }}
       </span>

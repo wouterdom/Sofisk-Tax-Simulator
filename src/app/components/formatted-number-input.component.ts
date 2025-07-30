@@ -97,7 +97,7 @@ export class FormattedNumberInputComponent implements ControlValueAccessor {
   }
 
   get inputClasses(): string {
-    const baseClasses = 'w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500';
+    const baseClasses = 'w-40 text-right text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500';
     const errorClasses = this.showError ? 'border-red-500' : 'border-gray-300';
     const disabledClasses = this.disabled ? 'bg-gray-100 cursor-not-allowed' : '';
     

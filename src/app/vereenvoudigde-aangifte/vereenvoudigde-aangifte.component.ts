@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
-import { NgClass, NgSwitch, NgSwitchCase, NgIf, NgFor, CurrencyPipe, DatePipe } from '@angular/common';
+import { NgClass, NgSwitch, NgSwitchCase, NgIf, NgFor, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxDataService, DeclarationSection, TaxCalculationResults } from '../services/tax-data.service';
 import { FormattedNumberInputComponent } from '../components/formatted-number-input.component';
@@ -9,7 +9,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-vereenvoudigde-aangifte',
   standalone: true,
   imports: [
-    NgClass, NgSwitch, NgSwitchCase, NgIf, NgFor, CurrencyPipe, DatePipe, 
+    NgClass, NgSwitch, NgSwitchCase, NgIf, NgFor, CurrencyPipe, DatePipe, DecimalPipe,
     FormsModule, FormattedNumberInputComponent
   ],
   templateUrl: './vereenvoudigde-aangifte.component.html',
@@ -22,6 +22,10 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
   declarationSections: DeclarationSection[] = [];
   calculationResults: TaxCalculationResults | null = null;
   isLoading = false;
+  
+  // Checkbox states for tax rate eligibility
+  canUseReducedRate = true; // Code 1701
+  isSmallCompanyFirstThreeYears = true; // Code 1801
   
   // Data management properties
   showImportDialog = false;
@@ -42,6 +46,8 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
       if (data) {
         this.declarationSections = data.declarationSections;
         this.inputMethod = data.inputMethod;
+        this.canUseReducedRate = data.canUseReducedRate;
+        this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
         this.lastSaved = data.lastUpdated;
       }
     });
@@ -93,6 +99,11 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
 
     // Save updated data to service
     this.taxDataService.updateDeclarationSections(this.declarationSections);
+  }
+
+  onTaxRateCheckboxChange(): void {
+    // Trigger recalculation when checkbox state changes
+    this.taxDataService.updateTaxRateEligibility(this.canUseReducedRate, this.isSmallCompanyFirstThreeYears);
   }
 
   selectMethod(method: 'manual' | 'previous' | 'upload'): void {

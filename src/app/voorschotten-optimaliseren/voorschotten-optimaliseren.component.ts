@@ -82,4 +82,8 @@ export class VoorschottenOptimaliserenComponent implements OnInit, OnDestroy {
       this.taxDataService.updatePrepayments(this.prepayments);
     }
   }
+
+  getSuggestedPrepayment(quarter: keyof Prepayments): number {
+    return this.calculationResults?.suggestedPrepayments?.[quarter] ?? 0;
+  }
 }

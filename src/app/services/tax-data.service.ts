@@ -32,6 +32,14 @@ export interface Prepayments {
 
 export type PrepaymentStrategy = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
 
+export interface CalculationRow {
+  code: string;
+  description: string;
+  amount: number;
+  rate: number | null;
+  result: number;
+}
+
 export interface TaxCalculationResults {
   // Section totals
   section1Total: number;
@@ -40,6 +48,18 @@ export interface TaxCalculationResults {
   section4Total: number;
   section5Total: number;
   section6Total: number;
+  
+  // Detailed calculation sections
+  calculationRows: CalculationRow[];
+  calculationTotal: number;
+  
+  // Voorheffingen section
+  voorheffingenRows: CalculationRow[];
+  voorheffingenTotal: number;
+  
+  // Result section
+  resultRows: CalculationRow[];
+  finalTaxPayable: number;
   
   // Tax calculations
   taxableIncome: number;
@@ -52,6 +72,8 @@ export interface TaxCalculationResults {
   currentPrepayments: number;
   shortfall: number;
   suggestedPrepayments: Prepayments;
+  limitedSection4Total: number;
+  code1460: number;
 }
 
 export interface TaxData {
@@ -59,6 +81,8 @@ export interface TaxData {
   inputMethod: 'manual' | 'previous' | 'upload';
   prepayments: Prepayments;
   prepaymentStrategy: PrepaymentStrategy;
+  canUseReducedRate: boolean;
+  isSmallCompanyFirstThreeYears: boolean;
   lastUpdated: Date;
 }
 
@@ -109,14 +133,98 @@ export class TaxDataService {
     // Calculate section totals
     const section1Total = this.calculateSection1Total(data.declarationSections);
     const section2Total = this.calculateSection2Total(data.declarationSections);
-    const section3Total = Math.max(0, section1Total - section2Total); // Code 1460
     const section4Total = this.calculateSection4Total(data.declarationSections);
+    
+    // Calculate code 1460 (belastbaar tegen gewoon tarief)
+    const resultaatBelastbaarTijdperk = section1Total;
+    const resterendResultaat = resultaatBelastbaarTijdperk - section2Total;
+    
+    // Apply korfbeperking to section 4 deductions
+    const code1460BeforeKorf = Math.max(0, resterendResultaat);
+    const korfbeperking = this.calculateKorfbeperking(code1460BeforeKorf);
+    const limitedSection4Total = Math.min(section4Total, korfbeperking);
+    const code1460 = Math.max(0, code1460BeforeKorf - limitedSection4Total);
+    
+    const section3Total = code1460; // Final code 1460 value
     const section5Total = this.calculateSection5Total(data.declarationSections);
     const section6Total = this.calculateSection6Total(data.declarationSections);
 
-    // Calculate tax liability
+    // Get specific field values for calculation rows
+    const code1508 = this.getFieldValue(data.declarationSections, '1508') || 0;
+    const code1830 = this.getFieldValue(data.declarationSections, '1830') || 0;
+    const code1840 = this.getFieldValue(data.declarationSections, '1840') || 0;
+
+    // Calculate reduced rate portion based on checkbox state
+    let reducedRateBase = 0;
+    let standardRateBase = 0;
+    
+    if (data.canUseReducedRate) {
+      // If checkbox is checked, apply reduced rate to first €100,000
+      reducedRateBase = Math.min(code1460, 100000);
+      standardRateBase = Math.max(0, code1460 - 100000);
+    } else {
+      // If checkbox is unchecked, apply standard rate to full amount
+      reducedRateBase = 0;
+      standardRateBase = code1460;
+    }
+
+    // Build calculation rows - always show these lines
+    const calculationRows: CalculationRow[] = [
+      {
+        code: '1460',
+        description: 'Belastbaar tegen verminderd tarief',
+        amount: reducedRateBase,
+        rate: 20.00,
+        result: reducedRateBase * 0.20
+      },
+      {
+        code: '1460',
+        description: 'Belastbaar tegen gewoon tarief',
+        amount: standardRateBase,
+        rate: 25.00,
+        result: standardRateBase * 0.25
+      }
+    ];
+    
+    const calculationTotal = calculationRows.reduce((sum, row) => sum + row.result, 0);
+    
+    // Build voorheffingen rows - always show these lines
+    const voorheffingenRows: CalculationRow[] = [
+      {
+        code: '1830',
+        description: 'Niet-terugbetaalbare voorheffingen',
+        amount: code1830,
+        rate: null,
+        result: -code1830
+      },
+      {
+        code: '1840',
+        description: 'Terugbetaalbare voorheffingen',
+        amount: code1840,
+        rate: null,
+        result: -code1840
+      }
+    ];
+    
+    const voorheffingenTotal = voorheffingenRows.reduce((sum, row) => sum + row.result, 0);
+    
+    // Build result rows - always show these lines
+    const resultRows: CalculationRow[] = [
+      {
+        code: '1508',
+        description: 'Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve',
+        amount: code1508,
+        rate: 10.00,
+        result: code1508 * 0.10
+      }
+    ];
+    
+    const resultTotal = resultRows.reduce((sum, row) => sum + row.result, 0);
+    const finalTaxPayable = calculationTotal + voorheffingenTotal + resultTotal;
+
+    // Calculate tax liability and prepayments (keeping existing logic)
     const taxableIncome = section3Total;
-    const totalTaxLiability = this.calculateTotalTaxLiability(taxableIncome);
+    const totalTaxLiability = finalTaxPayable;
     
     // Calculate prepayment requirements
     const requiredPrepayments = totalTaxLiability * 0.9; // 90% rule
@@ -127,7 +235,7 @@ export class TaxDataService {
     const prepaymentPenalty = shortfall * 0.075; // 7.5% penalty
     
     // Calculate final tax due
-    const finalTaxDue = totalTaxLiability + prepaymentPenalty - section6Total;
+    const finalTaxDue = totalTaxLiability + prepaymentPenalty;
     
     // Calculate suggested prepayments based on strategy
     const suggestedPrepayments = this.calculateOptimalPrepayments(
@@ -143,6 +251,12 @@ export class TaxDataService {
       section4Total,
       section5Total,
       section6Total,
+      calculationRows,
+      calculationTotal,
+      voorheffingenRows,
+      voorheffingenTotal,
+      resultRows,
+      finalTaxPayable,
       taxableIncome,
       totalTaxLiability,
       prepaymentPenalty,
@@ -150,7 +264,9 @@ export class TaxDataService {
       requiredPrepayments,
       currentPrepayments,
       shortfall,
-      suggestedPrepayments
+      suggestedPrepayments,
+      limitedSection4Total,
+      code1460
     };
   }
 
@@ -174,12 +290,17 @@ export class TaxDataService {
     return sections[5]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
   }
 
-  private calculateTotalTaxLiability(taxableIncome: number): number {
+  private calculateTotalTaxLiability(taxableIncome: number, canUseReducedRate: boolean): number {
     // Belgian corporate tax calculation
-    const reducedTaxBase = Math.min(taxableIncome, 100000);
-    const regularTaxBase = Math.max(0, taxableIncome - 100000);
-    
-    return (reducedTaxBase * 0.20) + (regularTaxBase * 0.25);
+    if (canUseReducedRate) {
+      // Apply reduced rate to first €100,000
+      const reducedTaxBase = Math.min(taxableIncome, 100000);
+      const regularTaxBase = Math.max(0, taxableIncome - 100000);
+      return (reducedTaxBase * 0.20) + (regularTaxBase * 0.25);
+    } else {
+      // Apply standard rate to full amount
+      return taxableIncome * 0.25;
+    }
   }
 
   private calculateTotalPrepayments(prepayments: Prepayments): number {
@@ -226,6 +347,21 @@ export class TaxDataService {
     return optimized;
   }
 
+  private calculateKorfbeperking(code1460: number): number {
+    // Korfbeperking formula: MIN(code1460, 1000000) + MAX(0, code1460 - 1000000) * 0.7
+    return Math.min(code1460, 1000000) + Math.max(0, code1460 - 1000000) * 0.7;
+  }
+
+  private getFieldValue(sections: DeclarationSection[], code: string): number {
+    for (const section of sections) {
+      const field = section.fields.find(f => f.code === code);
+      if (field) {
+        return field.value || 0;
+      }
+    }
+    return 0;
+  }
+
   private getDefaultData(): TaxData {
     return {
       declarationSections: [
@@ -246,12 +382,12 @@ export class TaxDataService {
           isOpen: true,
           fields: [
             { code: '1420', label: 'Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is', value: 0 },
-            { code: '1432', label: 'Niet-belastbare bestanddelen', value: 0 },
-            { code: '1433', label: 'Definitief belaste inkomsten en vrijgestelde RI', value: 0 },
-            { code: '1439', label: 'Aftrek innovatie-inkomsten', value: 0 },            
-            { code: '1438', label: 'Aftrek voor innovatie-inkomsten', value: 0 },
-            { code: '1437', label: 'Investeringsaftrek', value: 0 },
-            { code: '1445', label: 'Aftrek groepsbijdrage', value: 0 },
+            { code: '1432', label: 'Octrooi-aftrek', value: 0 },
+            { code: '1433', label: 'Innovatie-aftrek', value: 0 },
+            { code: '1439', label: 'Investeringsaftrek', value: 0 },            
+            { code: '1438', label: 'Groepsbijdrage', value: 0 },
+            { code: '1437', label: 'Risicokapitaal-aftrek', value: 0 },
+            { code: '1445', label: 'Overgedragen definitief belast inkomsten', value: 0 },
           ],
           total: { value: 0 }
         },
@@ -301,6 +437,8 @@ export class TaxDataService {
       inputMethod: 'manual',
       prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 },
       prepaymentStrategy: 'spread',
+      canUseReducedRate: true,
+      isSmallCompanyFirstThreeYears: true,
       lastUpdated: new Date()
     };
   }
@@ -412,6 +550,20 @@ export class TaxDataService {
       const updatedData: TaxData = {
         ...currentData,
         prepaymentStrategy: strategy,
+        lastUpdated: new Date()
+      };
+      this.saveData(updatedData);
+      this.dataSubject.next(updatedData);
+    }
+  }
+
+  public updateTaxRateEligibility(canUseReducedRate: boolean, isSmallCompanyFirstThreeYears: boolean): void {
+    const currentData = this.getData();
+    if (currentData) {
+      const updatedData: TaxData = {
+        ...currentData,
+        canUseReducedRate,
+        isSmallCompanyFirstThreeYears,
         lastUpdated: new Date()
       };
       this.saveData(updatedData);
