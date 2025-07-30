@@ -1,3 +1,60 @@
+<!-- Data Management Controls -->
+<div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+  <div class="flex justify-between items-center mb-3">
+    <h3 class="text-lg font-semibold text-gray-900">Data Management</h3>
+    <div class="text-xs text-gray-500">
+      Last saved: {{ lastSaved | date:'short' }}
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <button 
+      class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+      (click)="resetToDefaults()">
+      Reset to Defaults
+    </button>
+    <button 
+      class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+      (click)="exportData()">
+      Export Data
+    </button>
+    <button 
+      class="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 transition-colors"
+      (click)="showImportDialog = true">
+      Import Data
+    </button>
+    <button 
+      class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+      (click)="clearData()">
+      Clear All Data
+    </button>
+  </div>
+  
+  <!-- Import Dialog -->
+  <div *ngIf="showImportDialog" class="mt-4 p-4 bg-gray-50 rounded-lg">
+    <h4 class="font-medium text-gray-900 mb-2">Import Data</h4>
+    <textarea 
+      class="w-full h-32 p-2 border border-gray-300 rounded text-sm font-mono"
+      placeholder="Paste JSON data here..."
+      [(ngModel)]="importDataText">
+    </textarea>
+    <div class="flex gap-2 mt-2">
+      <button 
+        class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+        (click)="importData()">
+        Import
+      </button>
+      <button 
+        class="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
+        (click)="showImportDialog = false">
+        Cancel
+      </button>
+    </div>
+    <div *ngIf="importMessage" class="mt-2 text-sm" [ngClass]="importSuccess ? 'text-green-600' : 'text-red-600'">
+      {{ importMessage }}
+    </div>
+  </div>
+</div>
+
 <!-- Top section: Two columns, same height, no extra whitespace -->
 <div class="flex flex-col lg:flex-row gap-4 w-full mb-4">
   <!-- Left column: Invoermethode (3 cards + info box) -->
@@ -74,299 +131,113 @@
     <div class="flex flex-row gap-4 flex-1 min-h-0">
       <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
         <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Vermeerdering wegens ontoereikende VA</h4>
-        <div class="text-base font-bold text-cyan-700 text-center">50.625,00</div>
+        <div class="text-base font-bold text-cyan-700 text-center">
+          {{ (calculationResults?.prepaymentPenalty || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
+        </div>
       </div>
       <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 flex-1 flex flex-col items-center justify-center h-full min-h-0">
         <h4 class="text-sm font-semibold text-gray-900 mb-1 text-center">Te betalen belastingen</h4>
-        <div class="text-base font-bold text-rose-700 text-center">1.800.624,00</div>
+        <div class="text-base font-bold text-rose-700 text-center">
+          {{ (calculationResults?.finalTaxDue || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-  <div class="flex flex-col lg:flex-row gap-8 items-stretch w-full">
-    <!-- Left: Vereenvoudigde aangifte -->
-    <div class="bg-white border rounded-xl shadow-sm p-6 flex-1 min-h-full flex flex-col w-full lg:w-1/2">
-      <h3 class="text-xl font-bold text-gray-900 mb-6">Vereenvoudigde aangifte</h3>
-      <!-- Input fields -->
-      <div class="space-y-4">
-        <div *ngFor="let code of declarationCodes" class="flex items-center mb-2">
-          <span class="flex-1 text-gray-700">{{ code.code }}</span>
-          <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" [value]="code.value" />
-          <span class="ml-2 text-sm text-gray-500">
-            {{ code.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
-          </span>
-        </div>
-      </div>
-      <!-- Aftrekken van de resterende winst (foldable) -->
-      <div class="mt-6">
-        <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50" (click)="showAftrekkenResterendeWinst = !showAftrekkenResterendeWinst">
-          <h4 class="font-medium text-gray-900">Aftrekken van de resterende winst</h4>
-          <span class="text-sm font-medium flex items-center">
-            <span>- € 800.000</span>
-            <svg *ngIf="!showAftrekkenResterendeWinst" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
-            <svg *ngIf="showAftrekkenResterendeWinst" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
-          </span>
-        </div>
-        <div *ngIf="showAftrekkenResterendeWinst">
-          <div class="space-y-2 bg-teal-50 p-4 rounded">
-            <!-- Existing fields here -->
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1420</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="800000" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Niet-belastbare bestanddelen</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1432</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Definitief belaste inkomsten en vrijgestelde RI</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1433</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Aftrek voor octrooi-inkomsten</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1434</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Aftrek voor innovatie-inkomsten</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1438</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Investeringsaftrek</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1437</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Aftrek groepsbijdrage</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <!-- Placeholder for more fields -->
+<div class="flex flex-col lg:flex-row gap-8 items-stretch w-full">
+  <!-- Left: Vereenvoudigde aangifte -->
+  <div class="bg-white border rounded-xl shadow-sm p-6 flex-1 min-h-full flex flex-col w-full lg:w-1/2">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">Vereenvoudigde aangifte</h3>
+
+    <div class="space-y-6">
+      <div *ngFor="let section of declarationSections" class="block">
+        <!-- Unfoldable Section -->
+        <div *ngIf="!section.isFoldable && section.title === null && !section.subtotal" class="space-y-4">
+          <div *ngFor="let field of section.fields" class="flex items-center mb-2">
+            <span class="flex-1 text-gray-700">{{ field.label }}</span>
+            <span *ngIf="field.code" class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
+            <app-formatted-number-input
+              [fieldName]="field.code || field.label"
+              [placeholder]="'0,00'"
+              [(ngModel)]="field.value"
+              (valueChange)="onFieldValueChange(field, $event)">
+            </app-formatted-number-input>
           </div>
         </div>
-      </div>
-      <!-- Subtotal: Belastbare winst gewoon tarief (Code 1460) -->
-      <div class="flex justify-between items-center py-3 mt-4 px-4 border-t border-gray-200">
-        <span class="text-base font-medium text-gray-900 underline text-left">Belastbare winst gewoon tarief (Code 1460)</span>
-        <span class="text-base font-medium text-gray-900 underline text-left">€ 0</span>
-      </div>
-      <!-- Aftrekken resterende winst - korfbeperking (foldable) -->
-      <div class="mt-6">
-        <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50" (click)="showAftrekkenKorbeperking = !showAftrekkenKorbeperking">
-          <h4 class="font-medium text-gray-900">Aftrekken resterende winst - korfbeperking</h4>
-          <span class="text-sm font-medium flex items-center">
-            <span>- € 0</span>
-            <svg *ngIf="!showAftrekkenKorbeperking" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
-            <svg *ngIf="showAftrekkenKorbeperking" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
-          </span>
+        
+        <!-- Subtotal Section -->
+        <div *ngIf="section.subtotal" class="flex justify-between items-center py-3 mt-4 px-4 border-t border-gray-200">
+            <span class="text-base font-medium text-gray-900 underline text-left">{{ section.subtotal.label }}</span>
+            <span class="text-base font-medium text-gray-900 underline text-right">{{ section.subtotal.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
         </div>
-        <div *ngIf="showAftrekkenKorbeperking">
-          <div class="space-y-2 bg-teal-50 p-4 rounded">
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Aftrek voor risicokapitaal</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1435</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Overgedragen definitief belaste inkomsten</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1441</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Definitief belaste inkomsten en vrijgestelde roerende inkomsten</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1442</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Gecompenseerde verliezen</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1436</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Overgedragen onbeperkte</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1443</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Overgedragen beperkt aftrek voor risicokapitaal (7jaar)</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1444</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
+
+        <!-- Foldable Section -->
+        <div *ngIf="section.isFoldable">
+          <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50" (click)="section.isOpen = !section.isOpen">
+            <h4 class="font-medium text-gray-900">{{ section.title }}</h4>
+            <span class="text-sm font-medium flex items-center">
+              <span *ngIf="section.total" class="mr-2">{{ section.total.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+              <svg *ngIf="!section.isOpen" class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
+              <svg *ngIf="section.isOpen" class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
+            </span>
+          </div>
+          <div *ngIf="section.isOpen">
+            <div class="space-y-2 bg-teal-50 p-4 rounded">
+              <div *ngFor="let field of section.fields" class="flex items-center mb-2">
+                <span class="flex-1 text-gray-700">{{ field.label }}</span>
+                <span *ngIf="field.code" class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
+                <app-formatted-number-input
+                  [fieldName]="field.code || field.label"
+                  [placeholder]="'0,00'"
+                  [(ngModel)]="field.value"
+                  (valueChange)="onFieldValueChange(field, $event)">
+                </app-formatted-number-input>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <!-- Afzonderlijk te belasten (foldable) -->
-      <div class="mt-6">
-        <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50" (click)="showAfzonderlijkTeBelasten = !showAfzonderlijkTeBelasten">
-          <h4 class="font-medium text-gray-900">Afzonderlijk te belasten</h4>
-          <span class="text-sm font-medium flex items-center">
-            <span>€ 200.000</span>
-            <svg *ngIf="!showAfzonderlijkTeBelasten" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
-            <svg *ngIf="showAfzonderlijkTeBelasten" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
-          </span>
-        </div>
-        <div *ngIf="showAfzonderlijkTeBelasten">
-          <div class="space-y-2 bg-teal-50 p-4 rounded">
-            <!-- Placeholder for afzonderlijk te belasten fields -->
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Liquidatiereserve</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1508</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <!-- Add more afzonderlijk te belasten fields as needed -->
-          </div>
-        </div>
-      </div>
-      <!-- Voorheffing (foldable) -->
-      <div class="mt-6">
-        <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50" (click)="showVoorheffing = !showVoorheffing">
-          <h4 class="font-medium text-gray-900">Voorheffing</h4>
-          <span class="text-sm font-medium flex items-center">
-            <span>€ 0</span>
-            <svg *ngIf="!showVoorheffing" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
-            <svg *ngIf="showVoorheffing" class="w-5 h-5 ml-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
-          </span>
-        </div>
-        <div *ngIf="showVoorheffing">
-          <div class="space-y-2 bg-teal-50 p-4 rounded">
-            <!-- Placeholder for voorheffing fields -->
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Niet-terugbetaalbare voorheffing</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1830</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <div class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">Terugbetaalbare voorheffing</span>
-              <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">1840</span>
-              <input type="number" class="w-24 text-right text-sm border border-gray-300 rounded-md px-2 py-1" value="0" />
-              <span class="ml-2 text-sm text-gray-500">€</span>
-            </div>
-            <!-- Add more voorheffing fields as needed -->
-          </div>
-        </div>
-      </div>
-      <!-- Add more sections as in the screenshot if needed -->
-    </div>
-    <!-- Right: Te betalen belasting -->
-    <div class="bg-white border rounded-xl shadow-sm p-6 flex-1 min-h-full flex flex-col w-full lg:w-1/2">
-      <h3 class="text-xl font-bold text-gray-900 mb-1 mt-0">Te betalen belasting</h3>
-      <!-- Section: Gewone aanslagen -->
-      <div class="mb-0 w-full">
-        <div class="font-semibold text-base text-gray-700 mb-0 mt-0">Gewone aanslagen</div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 font-semibold border-b pb-1 w-full text-sm mt-0">
-          <span class="text-sm">Omschrijving</span>
-          <span class="text-sm">Code</span>
-          <span class="text-sm text-right">Basis</span>
-          <span class="text-sm text-right">Tarief</span>
-          <span class="text-sm text-right">Resultaat</span>
-        </div>
-        <!-- Mock data rows for gewone aanslagen -->
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Belastbaar tegen gewoon tarief</span>
-          <span>1460</span>
-          <span class="text-right">3.000.000,00</span>
-          <span class="text-right">25,00%</span>
-          <span class="text-right">750.000,00</span>
-        </div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Belastbaar tegen verlaagd tarief op de eerste schijf van 100.000 EUR</span>
-          <span>1460</span>
-          <span class="text-right">0,00</span>
-          <span class="text-right">20,00%</span>
-          <span class="text-right">0,00</span>
-        </div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Verwezenlijkte meerwaarden en voorzieningen voor risico’s en kosten belastbaar tegen 33,99%</span>
-          <span>1468</span>
-          <span class="text-right">0,00</span>
-          <span class="text-right">33,99%</span>
-          <span class="text-right">0,00</span>
-        </div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Verwezenlijkte meerwaarden en voorzieningen voor risico’s en kosten belastbaar tegen 29,58%</span>
-          <span>1474</span>
-          <span class="text-right">0,00</span>
-          <span class="text-right">29,58%</span>
-          <span class="text-right">0,00</span>
-        </div>
-      </div>
-      <!-- Section: Voorheffingen -->
-      <div class="mb-2 w-full">
-        <div class="font-semibold text-base text-gray-700 mb-1">Voorheffingen</div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Niet-terugbetaalbare voorheffingen</span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span class="text-right">0,00</span>
-        </div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Terugbetaalbare voorheffingen</span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span class="text-right">0,00</span>
-        </div>
-      </div>
-      <!-- Section: Voorafbetalingen -->
-      <div class="mb-2 w-full">
-        <div class="font-semibold text-base text-gray-700 mb-1">Voorafbetalingen</div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Vermeerdering wegens ontoereikende VA</span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span class="text-right">50.625,00</span>
-        </div>
-      </div>
-      <!-- Section: Afzonderlijke aanslagen -->
-      <div class="mb-2 w-full">
-        <div class="font-semibold text-base text-gray-700 mb-1">Afzonderlijke aanslagen</div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve</span>
-          <span>1508</span>
-          <span class="text-right">0,00</span>
-          <span class="text-right">10,00%</span>
-          <span class="text-right">0,00</span>
-        </div>
-      </div>
-      <!-- Section: Resultaat -->
-      <div class="mb-2 w-full">
-        <div class="font-semibold text-base text-gray-700 mb-1">Resultaat</div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Te betalen belastingen</span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span class="text-right">1.800.624,00</span>
-        </div>
-        <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
-          <span class="text-gray-700">Terug te vorderen belastingen</span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span class="text-right">0,00</span>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500 mt-2">Alle bedragen zijn mock-up data en worden later vervangen door berekende waarden.</div>
     </div>
   </div>
+  
+  <!-- Right: Te betalen belasting -->
+  <div class="bg-white border rounded-xl shadow-sm p-6 flex-1 min-h-full flex flex-col w-full lg:w-1/2">
+    <h3 class="text-xl font-bold text-gray-900 mb-1 mt-0">Te betalen belasting</h3>
+    
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="flex items-center justify-center py-4">
+      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+      <span class="ml-2 text-blue-600">Berekenen...</span>
+    </div>
+
+    <!-- Results display -->
+    <div *ngIf="!isLoading" class="space-y-4">
+      <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 font-semibold border-b pb-1 w-full text-sm">
+        <span class="text-sm">Omschrijving</span>
+        <span class="text-sm">Code</span>
+        <span class="text-sm text-right">Basis</span>
+        <span class="text-sm text-right">Tarief</span>
+        <span class="text-sm text-right">Resultaat</span>
+      </div>
+      
+      <div class="grid grid-cols-[minmax(250px,2fr)_80px_120px_80px_120px] gap-2 py-1 text-sm items-start even:bg-gray-50 w-full">
+        <span class="text-gray-700">Belastbaar tegen gewoon tarief</span>
+        <span>1460</span>
+        <span class="text-right">{{ (calculationResults?.taxableIncome || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+        <span class="text-right">25,00%</span>
+        <span class="text-right">{{ (calculationResults?.totalTaxLiability || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+      </div>
+      
+      <!-- Final result -->
+      <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+        <div class="text-lg font-bold text-blue-900">
+          Te betalen belastingen: {{ (calculationResults?.finalTaxDue || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
+        </div>
+        <div *ngIf="(calculationResults?.prepaymentPenalty || 0) > 0" class="text-sm text-red-600 mt-1">
+          Vermeerdering wegens ontoereikende VA: {{ (calculationResults?.prepaymentPenalty || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
