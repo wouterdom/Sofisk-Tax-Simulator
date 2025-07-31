@@ -5,7 +5,6 @@ import { registerLocaleData } from '@angular/common';
 import localeNlBe from '@angular/common/locales/nl-BE';
 
 import { routes } from './app.routes';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 // Register the nl-BE locale data
 registerLocaleData(localeNlBe, 'nl-BE');
@@ -15,7 +14,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(routes),
-    provideClientHydration(withEventReplay()),
     provideHttpClient()
   ]
 };

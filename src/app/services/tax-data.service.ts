@@ -49,6 +49,10 @@ export interface TaxCalculationResults {
   section5Total: number;
   section6Total: number;
   
+  // New intermediate calculations
+  code1430: number; // Resterend resultaat
+  code1440: number; // Grondslag voor de berekening korf
+  
   // Detailed calculation sections
   calculationRows: CalculationRow[];
   calculationTotal: number;
@@ -132,22 +136,25 @@ export class TaxDataService {
   private calculateTaxResults(data: TaxData): TaxCalculationResults {
     // Calculate section totals
     const section1Total = this.calculateSection1Total(data.declarationSections);
-    const section2Total = this.calculateSection2Total(data.declarationSections);
-    const section4Total = this.calculateSection4Total(data.declarationSections);
+    const code1420 = this.getFieldValue(data.declarationSections, '1420') || 0;
+    const section4Total = this.calculateSection4Total(data.declarationSections); // Aftrekken van de resterende winst
+    const section6Total = this.calculateSection6Total(data.declarationSections); // Aftrekken resterende winst - korfbeperking
+    const section8Total = this.calculateSection8Total(data.declarationSections); // Afzonderlijk te belasten
+    const section9Total = this.calculateSection9Total(data.declarationSections); // Voorheffing
     
-    // Calculate code 1460 (belastbaar tegen gewoon tarief)
-    const resultaatBelastbaarTijdperk = section1Total;
-    const resterendResultaat = resultaatBelastbaarTijdperk - section2Total;
+    // Calculate code 1430 (Resterend resultaat)
+    const resterendResultaat = Math.max(0, section1Total - code1420);
     
-    // Apply korfbeperking to section 4 deductions
-    const code1460BeforeKorf = Math.max(0, resterendResultaat);
-    const korfbeperking = this.calculateKorfbeperking(code1460BeforeKorf);
-    const limitedSection4Total = Math.min(section4Total, korfbeperking);
-    const code1460 = Math.max(0, code1460BeforeKorf - limitedSection4Total);
+    // Calculate code 1440 (Grondslag voor de berekening korf)
+    const code1440 = Math.max(0, resterendResultaat - section4Total);
     
-    const section3Total = code1460; // Final code 1460 value
-    const section5Total = this.calculateSection5Total(data.declarationSections);
-    const section6Total = this.calculateSection6Total(data.declarationSections);
+    // Apply korfbeperking to section 6 deductions using code 1440
+    const korfbeperking = this.calculateKorfbeperking(code1440);
+    const limitedSection6Total = Math.min(section6Total, korfbeperking);
+    
+         // Calculate code 1460 (Belastbare winst gewoon tarief)
+     const code1460BeforeConstraint = Math.max(0, code1440 - limitedSection6Total);
+     const code1460 = code1460BeforeConstraint + code1420; // Actual result + code 1420
 
     // Get specific field values for calculation rows
     const code1508 = this.getFieldValue(data.declarationSections, '1508') || 0;
@@ -186,44 +193,47 @@ export class TaxDataService {
       }
     ];
     
-    const calculationTotal = calculationRows.reduce((sum, row) => sum + row.result, 0);
-    
-    // Build voorheffingen rows - always show these lines
-    const voorheffingenRows: CalculationRow[] = [
-      {
-        code: '1830',
-        description: 'Niet-terugbetaalbare voorheffingen',
-        amount: code1830,
-        rate: null,
-        result: -code1830
-      },
-      {
-        code: '1840',
-        description: 'Terugbetaalbare voorheffingen',
-        amount: code1840,
-        rate: null,
-        result: -code1840
-      }
-    ];
-    
-    const voorheffingenTotal = voorheffingenRows.reduce((sum, row) => sum + row.result, 0);
-    
-    // Build result rows - always show these lines
-    const resultRows: CalculationRow[] = [
-      {
-        code: '1508',
-        description: 'Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve',
-        amount: code1508,
-        rate: 10.00,
-        result: code1508 * 0.10
-      }
-    ];
-    
-    const resultTotal = resultRows.reduce((sum, row) => sum + row.result, 0);
-    const finalTaxPayable = calculationTotal + voorheffingenTotal + resultTotal;
+         const calculationTotal = calculationRows.reduce((sum, row) => sum + row.result, 0);
+     
+     // Build result rows - always show these lines
+     const resultRows: CalculationRow[] = [
+       {
+         code: '1508',
+         description: 'Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve',
+         amount: code1508,
+         rate: 10.00,
+         result: code1508 * 0.10
+       }
+     ];
+     
+     const code1508Total = resultRows.reduce((sum, row) => sum + row.result, 0);
+     
+     // Build voorheffingen rows - always show these lines
+     const saldo1 = calculationTotal + code1508Total; // Tax before voorheffingen
+     const limitedCode1830 = Math.min(code1830, saldo1); // Niet-terugbetaalbare voorheffingen cannot exceed Saldo 1
+     
+     const voorheffingenRows: CalculationRow[] = [
+       {
+         code: '1830',
+         description: 'Niet-terugbetaalbare voorheffingen',
+         amount: limitedCode1830,
+         rate: null,
+         result: -limitedCode1830
+       },
+       {
+         code: '1840',
+         description: 'Terugbetaalbare voorheffingen',
+         amount: code1840,
+         rate: null,
+         result: -code1840
+       }
+     ];
+     
+     const voorheffingenTotal = voorheffingenRows.reduce((sum, row) => sum + row.result, 0);
+    const finalTaxPayable = calculationTotal + voorheffingenTotal + code1508Total;
 
     // Calculate tax liability and prepayments (keeping existing logic)
-    const taxableIncome = section3Total;
+    const taxableIncome = code1460;
     const totalTaxLiability = finalTaxPayable;
     
     // Calculate prepayment requirements
@@ -246,11 +256,11 @@ export class TaxDataService {
 
     return {
       section1Total,
-      section2Total,
-      section3Total,
-      section4Total,
-      section5Total,
-      section6Total,
+      section2Total: code1420, // Now just code 1420
+      section3Total: code1460, // Final code 1460 value
+      section4Total: section4Total, // Aftrekken van de resterende winst
+      section5Total: section6Total, // Aftrekken resterende winst - korfbeperking
+      section6Total: section8Total, // Afzonderlijk te belasten
       calculationRows,
       calculationTotal,
       voorheffingenRows,
@@ -265,8 +275,10 @@ export class TaxDataService {
       currentPrepayments,
       shortfall,
       suggestedPrepayments,
-      limitedSection4Total,
-      code1460
+      limitedSection4Total: limitedSection6Total,
+      code1460,
+      code1430: resterendResultaat,
+      code1440: code1440
     };
   }
 
@@ -274,12 +286,8 @@ export class TaxDataService {
     return sections[0]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
   }
 
-  private calculateSection2Total(sections: DeclarationSection[]): number {
-    return sections[1]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
-  }
-
-  private calculateSection4Total(sections: DeclarationSection[]): number {
-    return sections[3]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
+  private calculateSection3Total(sections: DeclarationSection[]): number {
+    return sections[2]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
   }
 
   private calculateSection5Total(sections: DeclarationSection[]): number {
@@ -288,6 +296,22 @@ export class TaxDataService {
 
   private calculateSection6Total(sections: DeclarationSection[]): number {
     return sections[5]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
+  }
+
+  private calculateSection7Total(sections: DeclarationSection[]): number {
+    return sections[6]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
+  }
+
+  private calculateSection4Total(sections: DeclarationSection[]): number {
+    return sections[3]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
+  }
+
+  private calculateSection8Total(sections: DeclarationSection[]): number {
+    return sections[7]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
+  }
+
+  private calculateSection9Total(sections: DeclarationSection[]): number {
+    return sections[8]?.fields.reduce((acc, field) => acc + (field.value || 0), 0) || 0;
   }
 
   private calculateTotalTaxLiability(taxableIncome: number, canUseReducedRate: boolean): number {
@@ -377,11 +401,29 @@ export class TaxDataService {
           total: { value: 0 }
         },
         {
+          title: null,
+          isFoldable: false,
+          isOpen: true,
+          fields: [
+            { code: '1420', label: 'Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is', value: 0 },
+          ]
+        },
+        {
+          title: null,
+          isFoldable: false,
+          isOpen: true,
+          fields: [],
+          subtotal: {
+            label: 'Resterend resultaat (Code 1430)',
+            code: '1430',
+            value: 0
+          }
+        },
+        {
           title: 'Aftrekken van de resterende winst',
           isFoldable: true,
           isOpen: true,
           fields: [
-            { code: '1420', label: 'Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is', value: 0 },
             { code: '1432', label: 'Octrooi-aftrek', value: 0 },
             { code: '1433', label: 'Innovatie-aftrek', value: 0 },
             { code: '1439', label: 'Investeringsaftrek', value: 0 },            
@@ -397,8 +439,8 @@ export class TaxDataService {
           isOpen: true,
           fields: [],
           subtotal: {
-            label: 'Belastbare winst gewoon tarief (Code 1460)',
-            code: '1460',
+            label: 'Grondslag voor de berekening korf (Code 1440)',
+            code: '1440',
             value: 0
           }
         },
@@ -413,6 +455,17 @@ export class TaxDataService {
             { code: '1443', label: 'Overgedragen onbeperkte', value: 0 },
           ],
           total: { value: 0 }
+        },
+        {
+          title: null,
+          isFoldable: false,
+          isOpen: true,
+          fields: [],
+          subtotal: {
+            label: 'Belastbare winst gewoon tarief (Code 1460)',
+            code: '1460',
+            value: 0
+          }
         },
         {
           title: 'Afzonderlijk te belasten',
@@ -480,14 +533,35 @@ export class TaxDataService {
       }
     });
 
-    // Calculate the main subtotal (Code 1460): Belastbare winst gewoon tarief
-    // This is: (Section 1 total) - (Section 2 total)
+    // Calculate code 1430 (Resterend resultaat): Section 1 total - code 1420
     const section1Total = data.declarationSections[0].total?.value || 0;
-    const section2Total = data.declarationSections[1].total?.value || 0;
-    const subtotalSection = data.declarationSections[2];
+    const code1420 = this.getFieldValue(data.declarationSections, '1420') || 0;
+    const subtotalSection1430 = data.declarationSections[2]; // Section 3
     
-    if (subtotalSection.subtotal) {
-      subtotalSection.subtotal.value = Math.max(0, section1Total - section2Total);
+    if (subtotalSection1430.subtotal) {
+      subtotalSection1430.subtotal.value = Math.max(0, section1Total - code1420);
+    }
+
+    // Calculate code 1440 (Grondslag voor de berekening korf): Code 1430 - Section 4 total
+    const section4Total = data.declarationSections[3].total?.value || 0;
+    const subtotalSection1440 = data.declarationSections[4]; // Section 5
+    
+    if (subtotalSection1440.subtotal) {
+      subtotalSection1440.subtotal.value = Math.max(0, (subtotalSection1430.subtotal?.value || 0) - section4Total);
+    }
+
+    // Calculate code 1460 (Belastbare winst gewoon tarief): Code 1440 - Section 6 total (with korfbeperking)
+    const section6Total = data.declarationSections[5].total?.value || 0;
+    const subtotalSection1460 = data.declarationSections[6]; // Section 7
+    
+    if (subtotalSection1460.subtotal) {
+      // Apply korfbeperking to section 6 deductions
+      const korfbeperking = this.calculateKorfbeperking(subtotalSection1440.subtotal?.value || 0);
+      const limitedSection6Total = Math.min(section6Total, korfbeperking);
+      
+             // Calculate code 1460: actual result + code 1420
+       const code1460BeforeConstraint = Math.max(0, (subtotalSection1440.subtotal?.value || 0) - limitedSection6Total);
+       subtotalSection1460.subtotal.value = code1460BeforeConstraint + code1420;
     }
   }
 

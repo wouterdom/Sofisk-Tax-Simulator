@@ -152,8 +152,8 @@
 
     <div class="space-y-6">
       <div *ngFor="let section of declarationSections" class="block">
-        <!-- Unfoldable Section -->
-        <div *ngIf="!section.isFoldable && section.title === null && !section.subtotal" class="space-y-4">
+        <!-- Section with fields but no title (like code 1420) -->
+        <div *ngIf="!section.isFoldable && section.title === null && section.fields.length > 0" class="space-y-4">
           <div *ngFor="let field of section.fields" class="flex items-center mb-2">
             <span class="flex-1 text-gray-700">{{ field.label }}</span>
             <span *ngIf="field.code" class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
@@ -166,8 +166,8 @@
           </div>
         </div>
         
-        <!-- Subtotal Section -->
-        <div *ngIf="section.subtotal" class="flex justify-between items-center py-3 mt-4 px-4 border-t border-gray-200">
+        <!-- Subtotal Section only (like code 1430) -->
+        <div *ngIf="section.subtotal && section.fields.length === 0" class="flex justify-between items-center py-3 mt-4 px-4 border-t border-gray-200">
             <span class="text-base font-medium text-gray-900 underline text-left">{{ section.subtotal.label }}</span>
             <span class="text-base font-medium text-gray-900 underline text-right">{{ section.subtotal.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
         </div>
