@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
-import { NgIf, NgFor, CurrencyPipe, DecimalPipe } from '@angular/common';
+import { NgIf, NgFor, NgClass, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxDataService, DeclarationSection, TaxCalculationResults } from '../services/tax-data.service';
 import { FormattedNumberInputComponent } from '../components/formatted-number-input.component';
@@ -9,7 +9,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-vereenvoudigde-aangifte',
   standalone: true,
   imports: [
-    NgIf, NgFor, CurrencyPipe, DecimalPipe,
+    NgIf, NgFor, NgClass, CurrencyPipe, DecimalPipe,
     FormsModule, FormattedNumberInputComponent
   ],
   templateUrl: './vereenvoudigde-aangifte.component.html',
@@ -137,16 +137,27 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
   }
 
   onVoorafbetalingChange(field: string, value: number): void {
-    this.voorafbetalingen[field as keyof typeof this.voorafbetalingen] = value;
-    // TODO: Update calculations based on voorafbetalingen
-    this.calculate();
-  }
+  this.voorafbetalingen[field as keyof typeof this.voorafbetalingen] = value;
+  this.taxDataService.updatePrepayments(this.voorafbetalingen);
+}
 
   getTotalVoorafbetalingen(): number {
     return this.voorafbetalingen.va1 + this.voorafbetalingen.va2 + this.voorafbetalingen.va3 + this.voorafbetalingen.va4;
   }
 
-
-
-
+  getTaxCardTitle(): string {
+    if (!this.calculationResults) {
+      return 'Te betalen belastingen';
+    }
+    
+    const finalTaxDue = this.calculationResults.finalTaxDue;
+    
+    if (finalTaxDue > 0) {
+      return 'Te betalen belastingen';
+    } else if (finalTaxDue < 0) {
+      return 'Terug te vorderen belastingen';
+    } else {
+      return 'Te betalen belastingen'; // When it's 0, keep as taxes to be paid
+    }
+  }
 }

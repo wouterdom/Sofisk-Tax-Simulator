@@ -104,41 +104,32 @@
   
   <!-- Right Column: Calculation -->
   <div class="w-full lg:w-1/3 space-y-6">
-      <!-- Calculation Summary -->
+      <!-- Cards Section -->
       <div class="bg-white border rounded-xl shadow-sm p-6">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">Berekening</h3>
+        <div *ngIf="!isLoading && calculationResults" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Vermeerdering Card -->
+          <div class="p-4 rounded-lg text-white text-center" [ngClass]="{
+            'bg-gray-400': isSmallCompanyFirstThreeYears,
+            'bg-teal-400': !isSmallCompanyFirstThreeYears
+          }">
+            <div *ngIf="isSmallCompanyFirstThreeYears" class="text-lg font-bold">N/A</div>
+            <div *ngIf="!isSmallCompanyFirstThreeYears" class="text-2xl font-bold">
+              {{ calculationResults.vermeerderingWegensOntoereikendeVoorafbetalingen | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
+            </div>
+            <div class="text-sm">Vermeerdering</div>
+            <div *ngIf="isSmallCompanyFirstThreeYears" class="text-xs mt-1">(Eerste 3 boekjaren)</div>
+          </div>
+
+          <!-- Te Betalen Card -->
+          <div class="p-4 bg-teal-400 rounded-lg text-white text-center">
+            <div class="text-2xl font-bold">{{ calculationResults.finalTaxDue | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</div>
+            <div class="text-sm">{{ getTaxCardTitle() }}</div>
+          </div>
+        </div>
         
         <div *ngIf="isLoading" class="flex items-center justify-center py-4">
           <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           <span class="ml-2 text-blue-600">Berekenen...</span>
-        </div>
-
-        <div *ngIf="!isLoading && calculationResults" class="space-y-4">
-          <div class="flex justify-between items-center">
-            <span class="text-gray-700">Belasting tegen verminderd tarief</span>
-            <span class="font-medium">{{ calculationResults.taxAtReducedRate | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-700">Belasting tegen gewoon tarief</span>
-            <span class="font-medium">{{ calculationResults.taxAtStandardRate | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-700">Niet-terugbetaalbare voorheffingen</span>
-            <span class="font-medium">{{ calculationResults.nonRefundableWithholding | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-700">Terugbetaalbare voorheffingen</span>
-            <span class="font-medium">{{ calculationResults.refundableWithholding | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-700">Afzonderlijke aanslagen</span>
-            <span class="font-medium">{{ calculationResults.separateAssessment | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-          </div>
-
-          <div class="mt-4 p-4 bg-teal-500 rounded-lg text-white text-center">
-            <div class="text-2xl font-bold">{{ calculationResults.finalTaxDue | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</div>
-            <div class="text-sm">Te betalen belastingen</div>
-          </div>
         </div>
       </div>
       
@@ -169,14 +160,14 @@
                 <tr *ngIf="!calculationResults || !calculationResults.calculationRows || calculationResults.calculationRows.length === 0">
                   <td colspan="5" class="px-3 py-4 text-center text-gray-500">Berekeningen worden geladen...</td>
                 </tr>
-                <tr *ngFor="let row of calculationResults?.calculationRows" class="border-b last:border-b-0 hover:bg-teal-50">
+                <tr *ngFor="let row of calculationResults?.calculationRows" class="border-b last:border-b-0 hover:bg-teal-50" [ngClass]="{'bg-teal-50': row.description === 'Saldo 1'}">
                   <td class="px-3 py-2 text-sm">{{ row.description }}</td>
                   <td class="px-3 py-2 text-center">{{ row.code }}</td>
                   <td class="px-3 py-2 text-right">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
                   <td class="px-3 py-2 text-right">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
                   <td class="px-3 py-2 text-right font-medium">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
                 </tr>
-                <tr class="font-bold bg-white-100 border-t-2" *ngIf="calculationResults">
+                <tr class="font-bold bg-teal-50 border-t-2" *ngIf="calculationResults">
                   <td class="px-3 py-2" colspan="4">Saldo 1</td>
                   <td class="px-3 py-2 text-right">{{ calculationResults.calculationTotal | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
                 </tr>
@@ -193,15 +184,47 @@
                   <tr *ngIf="!calculationResults || !calculationResults.voorheffingenRows || calculationResults.voorheffingenRows.length === 0">
                     <td colspan="5" class="px-3 py-4 text-center text-gray-500">Geen voorheffingen</td>
                   </tr>
-                  <tr *ngFor="let row of calculationResults?.voorheffingenRows" class="border-b last:border-b-0 hover:bg-teal-50">
-                    <td class="px-3 py-2 text-sm w-1/2">{{ row.description }}</td>
-                    <td class="px-3 py-2 text-center w-16">{{ row.code }}</td>
-                    <td class="px-3 py-2 text-right w-24">&nbsp;</td>
-                    <td class="px-3 py-2 text-right w-20">&nbsp;</td>
-                    <td class="px-3 py-2 text-right font-medium w-24">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                  <tr *ngFor="let row of calculationResults?.voorheffingenRows" [ngClass]="{'bg-teal-50': row.description === 'Saldo 2'}" class="border-b last:border-b-0 hover:bg-teal-50">
+                    <ng-container *ngIf="row.description !== 'Saldo 2'; else saldo2Row">
+                      <td class="px-3 py-2 text-sm w-1/2">{{ row.description }}</td>
+                      <td class="px-3 py-2 text-center w-16">{{ row.code }}</td>
+                      <td class="px-3 py-2 text-right w-24">&nbsp;</td>
+                      <td class="px-3 py-2 text-right w-20">&nbsp;</td>
+                      <td class="px-3 py-2 text-right font-medium w-24">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                    </ng-container>
+                    <ng-template #saldo2Row>
+                      <td class="px-3 py-2 font-bold" colspan="4">{{ row.description }}</td>
+                      <td class="px-3 py-2 text-right font-bold">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                    </ng-template>
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Vermeerdering en Voorafbetalingen section -->
+          <div class="mb-4">
+            <h4 class="text-md font-semibold text-gray-900 mb-2">Vermeerdering en Voorafbetalingen</h4>
+            <div class="border rounded">
+              <table class="min-w-full text-sm">
+                <tbody>
+                  <tr *ngIf="!calculationResults || !calculationResults.vermeerderingRows || calculationResults.vermeerderingRows.length === 0">
+                    <td colspan="5" class="px-3 py-4 text-center text-gray-500">Geen vermeerdering berekening</td>
+                  </tr>
+                  <tr *ngFor="let row of calculationResults?.vermeerderingRows" 
+                      [ngClass]="(row.description === 'Berekening vermeerdering' && row.amount > 0) ? 'border-b last:border-b-0 hover:bg-teal-50 font-bold bg-teal-50' : 'border-b last:border-b-0 hover:bg-teal-50'">
+                    <td class="px-3 py-2 text-sm w-1/2" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.description }}</td>
+                    <td class="px-3 py-2 text-center w-16" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.code }}</td>
+                    <td class="px-3 py-2 text-right w-24" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                    <td class="px-3 py-2 text-right w-20" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
+                    <td class="px-3 py-2 text-right w-24" [class]="row.description === 'Berekening vermeerdering' && row.amount > 0 ? 'font-bold' : 'font-medium'">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="flex justify-between items-center mt-3 p-3 border-t-2 border-gray-300 bg-teal-50 rounded-b text-lg font-bold text-gray-900">
+              <span class="font-bold">Vermeerdering wegens ontoereikende voorafbetalingen</span>
+              <span class="font-bold">{{ (calculationResults?.vermeerderingTotal || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
             </div>
           </div>
 
@@ -214,18 +237,24 @@
                   <tr *ngIf="!calculationResults || !calculationResults.resultRows || calculationResults.resultRows.length === 0">
                     <td colspan="5" class="px-3 py-4 text-center text-gray-500">Geen resultaten</td>
                   </tr>
-                  <tr *ngFor="let row of calculationResults?.resultRows" class="border-b last:border-b-0 hover:bg-teal-50">
-                    <td class="px-3 py-2 text-sm w-1/2">{{ row.description }}</td>
-                    <td class="px-3 py-2 text-center w-16">{{ row.code }}</td>
-                    <td class="px-3 py-2 text-right w-24">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                    <td class="px-3 py-2 text-right w-20">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
-                    <td class="px-3 py-2 text-right font-medium w-24">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                  </tr>
+                  <ng-container *ngFor="let row of calculationResults?.resultRows; let i = index">
+                    <tr *ngIf="i < 3" [ngClass]="{'bg-teal-50': row.description === 'Saldo 2'}" class="border-b last:border-b-0 hover:bg-teal-50">
+                      <td class="px-3 py-2 text-sm w-1/2" [class.font-bold]="row.description === 'Saldo 2'">{{ row.description }}</td>
+                      <td colspan="4" class="px-3 py-2 text-right font-medium w-24" [class.font-bold]="row.description === 'Saldo 2'">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                    </tr>
+                    <tr *ngIf="i === 3" class="border-b last:border-b-0 hover:bg-teal-50">
+                      <td class="px-3 py-2 text-sm w-1/2">{{ row.description }}</td>
+                      <td class="px-3 py-2 text-center w-16">{{ row.code }}</td>
+                      <td class="px-3 py-2 text-right w-24">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                      <td class="px-3 py-2 text-right w-20">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
+                      <td class="px-3 py-2 text-right font-medium w-24">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                    </tr>
+                  </ng-container>
                 </tbody>
               </table>
             </div>
             <div class="flex justify-between items-center mt-3 p-3 border-t-2 border-gray-300 bg-teal-50 rounded-b text-lg font-bold text-gray-900">
-              <span>Te betalen belastingen</span>
+              <span>{{ getTaxCardTitle() }}</span>
               <span>{{ (calculationResults?.finalTaxPayable || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
             </div>
           </div>

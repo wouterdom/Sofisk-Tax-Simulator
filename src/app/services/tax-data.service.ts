@@ -61,6 +61,10 @@ export interface TaxCalculationResults {
   voorheffingenRows: CalculationRow[];
   voorheffingenTotal: number;
   
+  // Vermeerdering en Voorafbetalingen section
+  vermeerderingRows: CalculationRow[];
+  vermeerderingTotal: number;
+  
   // Result section
   resultRows: CalculationRow[];
   finalTaxPayable: number;
@@ -68,15 +72,15 @@ export interface TaxCalculationResults {
   // Tax calculations
   taxableIncome: number;
   totalTaxLiability: number;
-  prepaymentPenalty: number;
-  finalTaxDue: number;
+finalTaxDue: number;
   
   // Display-oriented calculation results
   taxAtReducedRate: number;
   taxAtStandardRate: number;
   nonRefundableWithholding: number;
-  refundableWithholding: number;
-  separateAssessment: number;
+refundableWithholding: number;
+separateAssessment: number;
+vermeerderingWegensOntoereikendeVoorafbetalingen: number;
   
   // Prepayment optimization
   requiredPrepayments: number;
@@ -202,23 +206,15 @@ export class TaxDataService {
     
          const calculationTotal = calculationRows.reduce((sum, row) => sum + row.result, 0);
      
-     // Build result rows - always show these lines
-     const resultRows: CalculationRow[] = [
-       {
-         code: '1508',
-         description: 'Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve',
-         amount: code1508,
-         rate: 10.00,
-         result: code1508 * 0.10
-       }
-     ];
+     const code1508Total = code1508 * 0.10;
      
-     const code1508Total = resultRows.reduce((sum, row) => sum + row.result, 0);
+              // Build voorheffingen rows - always show these lines
+    const saldo1 = calculationTotal; // Tax before voorheffingen
+    const limitedCode1830 = Math.min(code1830, saldo1); // Niet-terugbetaalbare voorheffingen cannot exceed Saldo 1
      
-     // Build voorheffingen rows - always show these lines
-     const saldo1 = calculationTotal + code1508Total; // Tax before voorheffingen
-     const limitedCode1830 = Math.min(code1830, saldo1); // Niet-terugbetaalbare voorheffingen cannot exceed Saldo 1
-     
+         // Calculate Saldo 2: Saldo 1 - 1830 - 1840 (can be negative)
+    const saldo2 = saldo1 - limitedCode1830 - code1840;
+      
      const voorheffingenRows: CalculationRow[] = [
        {
          code: '1830',
@@ -233,11 +229,117 @@ export class TaxDataService {
          amount: code1840,
          rate: null,
          result: -code1840
+       },
+       {
+         code: '',
+         description: 'Saldo 2',
+         amount: saldo2,
+         rate: null,
+         result: saldo2
        }
      ];
-     
+      
      const voorheffingenTotal = voorheffingenRows.reduce((sum, row) => sum + row.result, 0);
-    const finalTaxPayable = calculationTotal + voorheffingenTotal + code1508Total;
+     
+         // Build vermeerdering en voorafbetalingen rows
+        let vermeerderingTotal = 0;
+    let vermeerderingRows: CalculationRow[] = [];
+
+    if (data.isSmallCompanyFirstThreeYears) {
+      vermeerderingTotal = 0;
+      vermeerderingRows.push({
+        code: '1801',
+        description: 'Vermeerdering niet van toepassing (eerste 3 boekjaren)',
+        amount: 0,
+        rate: null,
+        result: 0
+      });
+    } else {
+      // Calculate the raw vermeerdering amount
+      const rawVermeerdering = Math.max(0, saldo2 * 0.09);
+      
+      // Apply de-minimis rule to the vermeerdering
+      const adjustedVermeerdering = this.applyDeMinimisRule(rawVermeerdering, saldo2);
+      
+      vermeerderingRows = [
+        {
+          code: '',
+          description: 'Berekening vermeerdering' + (adjustedVermeerdering === 0 ? ' (de-minimis regel)' : ''),
+          amount: saldo2,
+          rate: 9.00,
+          result: adjustedVermeerdering
+        },
+        {
+          code: '1811',
+          description: 'Voorafbetaling 1',
+          amount: data.prepayments.va1,
+          rate: 12.00,
+          result: -(data.prepayments.va1 * 0.12)
+        },
+        {
+          code: '1812',
+          description: 'Voorafbetaling 2',
+          amount: data.prepayments.va2,
+          rate: 10.00,
+          result: -(data.prepayments.va2 * 0.10)
+        },
+        {
+          code: '1813',
+          description: 'Voorafbetaling 3',
+          amount: data.prepayments.va3,
+          rate: 8.00,
+          result: -(data.prepayments.va3 * 0.08)
+        },
+        {
+          code: '1814',
+          description: 'Voorafbetaling 4',
+          amount: data.prepayments.va4,
+          rate: 6.00,
+          result: -(data.prepayments.va4 * 0.06)
+        }
+      ];
+      
+      // Calculate total with de-minimis rule applied
+      const prepaymentDeductions = -(data.prepayments.va1 * 0.12) - (data.prepayments.va2 * 0.10) - (data.prepayments.va3 * 0.08) - (data.prepayments.va4 * 0.06);
+      vermeerderingTotal = Math.max(0, adjustedVermeerdering + prepaymentDeductions);
+    }
+     
+    // Calculate total taxes payable: Saldo 2 - Voorafbetalingen + Vermeerdering + Code 1508
+    const voorafbetalingenTotal = this.calculateTotalPrepayments(data.prepayments);
+    const result1508 = code1508 * 0.10;
+    const finalTaxPayable = saldo2 - voorafbetalingenTotal + vermeerderingTotal + result1508;
+
+    // Build result rows - always show these lines
+    const resultRows: CalculationRow[] = [
+      {
+        code: '',
+        description: 'Saldo 2',
+        amount: 0,
+        rate: null,
+        result: saldo2
+      },
+      {
+        code: '1810',
+        description: 'Voorafbetalingen',
+        amount: this.calculateTotalPrepayments(data.prepayments),
+        rate: null,
+        result: -this.calculateTotalPrepayments(data.prepayments)
+      },
+      {
+        code: '',
+        description: 'Vermeerdering wegens ontoereikende voorafbetalingen' + (vermeerderingTotal === 0 && !data.isSmallCompanyFirstThreeYears ? ' (de-minimis regel toegepast)' : ''),
+        amount: vermeerderingTotal,
+        rate: null,
+        result: vermeerderingTotal
+      },
+      {
+        code: '1508',
+        description: 'Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve',
+        amount: code1508,
+        rate: 10.00,
+        result: code1508 * 0.10
+      }
+    ];
 
     // Calculate tax liability and prepayments (keeping existing logic)
     const taxableIncome = code1460;
@@ -248,11 +350,8 @@ export class TaxDataService {
     const currentPrepayments = this.calculateTotalPrepayments(data.prepayments);
     const shortfall = Math.max(0, requiredPrepayments - currentPrepayments);
     
-    // Calculate penalty
-    const prepaymentPenalty = shortfall * 0.075; // 7.5% penalty
-    
     // Calculate final tax due
-    const finalTaxDue = totalTaxLiability + prepaymentPenalty;
+const finalTaxDue = totalTaxLiability;
     
     // Calculate suggested prepayments based on strategy
     const suggestedPrepayments = this.calculateOptimalPrepayments(
@@ -267,37 +366,39 @@ export class TaxDataService {
     const nonRefundableWithholding = -limitedCode1830;
     const refundableWithholding = -code1840;
 
-    return {
-      section1Total,
-      section2Total: code1420, // Now just code 1420
-      section3Total: code1460, // Final code 1460 value
-      section4Total: section4Total, // Aftrekken van de resterende winst
-      section5Total: section6Total, // Aftrekken resterende winst - korfbeperking
-      section6Total: section8Total, // Afzonderlijk te belasten
-      calculationRows,
-      calculationTotal,
-      voorheffingenRows,
-      voorheffingenTotal,
-      resultRows,
-      finalTaxPayable,
-      taxableIncome,
-      totalTaxLiability,
-      prepaymentPenalty,
-      finalTaxDue,
-      requiredPrepayments,
-      currentPrepayments,
-      shortfall,
-      suggestedPrepayments,
-      limitedSection4Total: limitedSection6Total,
-      code1460,
-      code1430: resterendResultaat,
-      code1440: code1440,
-      taxAtReducedRate,
-      taxAtStandardRate,
-      nonRefundableWithholding,
-      refundableWithholding,
-      separateAssessment
-    };
+         return {
+       section1Total,
+       section2Total: code1420, // Now just code 1420
+       section3Total: code1460, // Final code 1460 value
+       section4Total: section4Total, // Aftrekken van de resterende winst
+       section5Total: section6Total, // Aftrekken resterende winst - korfbeperking
+       section6Total: section8Total, // Afzonderlijk te belasten
+       calculationRows,
+       calculationTotal,
+       voorheffingenRows,
+       voorheffingenTotal,
+       vermeerderingRows,
+       vermeerderingTotal,
+       resultRows,
+       finalTaxPayable,
+       taxableIncome,
+totalTaxLiability,
+finalTaxDue,
+       requiredPrepayments,
+       currentPrepayments,
+       shortfall,
+       suggestedPrepayments,
+       limitedSection4Total: limitedSection6Total,
+       code1460,
+       code1430: resterendResultaat,
+       code1440: code1440,
+       taxAtReducedRate,
+       taxAtStandardRate,
+       nonRefundableWithholding,
+refundableWithholding,
+separateAssessment,
+vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
+     };
   }
 
   private calculateSection1Total(sections: DeclarationSection[]): number {
@@ -392,6 +493,17 @@ export class TaxDataService {
   private calculateKorfbeperking(code1460: number): number {
     // Korfbeperking formula: MIN(code1460, 1000000) + MAX(0, code1460 - 1000000) * 0.7
     return Math.min(code1460, 1000000) + Math.max(0, code1460 - 1000000) * 0.7;
+  }
+
+  private applyDeMinimisRule(vermeerderingAmount: number, taxBase: number): number {
+    // De-minimis rule: no increase is due if the amount is less than €50 or 0.5% of the tax base
+    const deMinimisThreshold = Math.max(50, taxBase * 0.005);
+    
+    if (vermeerderingAmount <= deMinimisThreshold) {
+      return 0;
+    }
+    
+    return vermeerderingAmount;
   }
 
   private getFieldValue(sections: DeclarationSection[], code: string): number {
