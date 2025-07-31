@@ -508,8 +508,8 @@ export class TaxDataService {
       inputMethod: 'manual',
       prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 },
       prepaymentStrategy: 'spread',
-      canUseReducedRate: true,
-      isSmallCompanyFirstThreeYears: true,
+      canUseReducedRate: false,
+      isSmallCompanyFirstThreeYears: false,
       lastUpdated: new Date()
     };
   }
@@ -672,6 +672,7 @@ export class TaxDataService {
   public clearData(): void {
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem('sofisk_current_step');
     }
     this.dataSubject.next(null);
   }

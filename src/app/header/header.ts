@@ -32,9 +32,16 @@ export class Header implements OnInit, OnDestroy {
 
   resetData(): void {
     if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      this.taxDataService.clearData();
-      // Refresh the page after clearing data
-      window.location.reload();
+      // Store current step before clearing data
+      const currentStep = localStorage.getItem('sofisk_current_step');
+      
+      // Reset to defaults (this will clear all data and set default values)
+      this.taxDataService.resetToDefaults();
+      
+      // Restore the current step if it exists
+      if (currentStep) {
+        localStorage.setItem('sofisk_current_step', currentStep);
+      }
     }
   }
 }

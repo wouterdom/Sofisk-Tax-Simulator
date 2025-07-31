@@ -24,8 +24,8 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
   isLoading = false;
   
   // Checkbox states for tax rate eligibility
-  canUseReducedRate = true; // Code 1701
-  isSmallCompanyFirstThreeYears = true; // Code 1801
+  canUseReducedRate = false; // Code 1701
+  isSmallCompanyFirstThreeYears = false; // Code 1801
   
   // Voorafbetalingen data
   voorafbetalingen = {
