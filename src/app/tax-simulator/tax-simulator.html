@@ -1,38 +1,161 @@
 <app-header></app-header>
-<div class="w-full px-0 py-2">
-  <!-- Stepper Navigation -->
-  <div class="flex items-center justify-center my-2 w-full">
-    <div class="flex items-center space-x-4 cursor-pointer" (click)="goToStep(1)">
-      <div class="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
-           [ngClass]="step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-blue-100 hover:text-blue-600'">
-        <span class="text-sm font-medium">1</span>
+<!-- Progress Indicator -->
+<div class="bg-white shadow-sm border-b mb-6">
+  <div class="w-full px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-center py-4">
+      <div class="flex items-center space-x-8">
+        <!-- Step 1: Select invoermethode -->
+        <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(1)">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
+               [ngClass]="currentStep === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
+            1
+          </div>
+          <span class="text-sm font-medium transition-colors"
+                [ngClass]="currentStep === 1 ? 'text-blue-600' : 'text-gray-500'">
+            Select invoermethode
+          </span>
+        </div>
+
+        <!-- Step 2: Belastingverplichtingen bepalen -->
+        <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(2)">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
+               [ngClass]="currentStep === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
+            2
+          </div>
+          <span class="text-sm font-medium transition-colors"
+                [ngClass]="currentStep === 2 ? 'text-blue-600' : 'text-gray-500'">
+            Belastingverplichtingen bepalen
+          </span>
+        </div>
+
+        <!-- Step 3: Voorschotten optimaliseren -->
+        <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(3)">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
+               [ngClass]="currentStep === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
+            3
+          </div>
+          <span class="text-sm font-medium transition-colors"
+                [ngClass]="currentStep === 3 ? 'text-blue-600' : 'text-gray-500'">
+            Voorschotten optimaliseren
+          </span>
+        </div>
       </div>
-      <span class="text-xs font-medium transition-colors duration-150"
-            [ngClass]="step === 1 ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'">Belastingverplichtingen bepalen</span>
-    </div>
-    <span class="w-5 h-5 text-gray-400 mx-2">→</span>
-    <div class="flex items-center space-x-4 cursor-pointer" (click)="goToStep(2)">
-      <div class="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
-           [ngClass]="step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-blue-100 hover:text-blue-600'">
-        <span class="text-sm font-medium">2</span>
-      </div>
-      <span class="text-xs font-medium transition-colors duration-150"
-            [ngClass]="step === 2 ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'">Voorschotten optimaliseren</span>
     </div>
   </div>
-<!-- Main Content Area with conditional step rendering -->
-  <div class="p-2 lg:p-4">
-    <div *ngIf="step === 1">
-      <app-vereenvoudigde-aangifte
-        [inputMethod]="inputMethod"
-        (inputMethodChange)="setInputMethod($event)"
-      ></app-vereenvoudigde-aangifte>
-    </div>
-    <div *ngIf="step === 2">
-      <app-voorschotten-optimaliseren></app-voorschotten-optimaliseren>
-      <div class="flex justify-start mt-4 w-full">
-        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1 rounded transition-colors text-xs" (click)="goToStep(1)">Terug naar stap 1</button>
+</div>
+
+<!-- Step Content -->
+<div class="w-full px-4 sm:px-6 lg:px-8">
+  <!-- Step 1: Select invoermethode -->
+  <div *ngIf="currentStep === 1" class="space-y-6">
+    <div class="bg-white border border-teal-200 rounded-lg p-6 max-w-4xl mx-auto">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+             [ngClass]="inputMethod === 'manual' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+             (click)="setInputMethod('manual')">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">📄</span>
+            <div>
+              <h4 class="font-medium text-gray-900 text-sm">Handmatige invoer</h4>
+              <p class="text-xs text-gray-600">Voer bekende bedragen direct in</p>
+            </div>
+          </div>
+        </div>
+        <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+             [ngClass]="inputMethod === 'previous' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+             (click)="setInputMethod('previous')">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">🗂️</span>
+            <div>
+              <h4 class="font-medium text-gray-900 text-sm">Vorig jaar als basis</h4>
+              <p class="text-xs text-gray-600">Start met cijfers van vorige aangifte</p>
+            </div>
+          </div>
+        </div>
+        <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+             [ngClass]="inputMethod === 'upload' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+             (click)="setInputMethod('upload')">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">⬆️</span>
+            <div>
+              <h4 class="font-medium text-gray-900 text-sm">Voorlopige P&V</h4>
+              <p class="text-xs text-gray-600">Upload tussentijdse proef- en saldibalans</p>
+            </div>
+          </div>
+        </div>
       </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p class="text-xs text-blue-800">
+          <ng-container [ngSwitch]="inputMethod">
+            <ng-container *ngSwitchCase="'manual'">
+              <strong>Handmatige invoer:</strong> Voer de verwachte bedragen direct in voor een snelle berekening. U kunt deze waarden op elk moment aanpassen.
+            </ng-container>
+            <ng-container *ngSwitchCase="'previous'">
+              <strong>Vorig jaar als basis:</strong> De cijfers van vorig jaar worden overgenomen als basis. U kunt deze aanpassen om een accuratere inschatting te maken voor het huidige boekjaar.
+            </ng-container>
+            <ng-container *ngSwitchCase="'upload'">
+              <strong>Extrapolatie:</strong> Resultaat voor 9 maanden geëxtrapoleerd naar 12 maanden = €90.000
+            </ng-container>
+          </ng-container>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Belastingverplichtingen bepalen -->
+  <div *ngIf="currentStep === 2">
+    <app-vereenvoudigde-aangifte [inputMethod]="inputMethod"></app-vereenvoudigde-aangifte>
+  </div>
+
+  <!-- Step 3: Voorschotten optimaliseren -->
+  <div *ngIf="currentStep === 3">
+    <app-voorschotten-optimaliseren></app-voorschotten-optimaliseren>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="flex justify-between items-center mt-8 pb-8">
+    <button 
+      *ngIf="currentStep > 1"
+      class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+      (click)="previousStep()">
+      Previous
+    </button>
+    <div *ngIf="currentStep === 1"></div>
+
+    <button 
+      *ngIf="currentStep < 3"
+      class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      (click)="nextStep()">
+      Next
+    </button>
+    <button 
+      *ngIf="currentStep === 3"
+      class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+      (click)="commitData()">
+      Commit
+    </button>
+  </div>
+</div>
+
+<!-- Save Dialog -->
+<div *ngIf="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Save Data</h3>
+    <p class="text-gray-600 mb-6">
+      Are you sure you want to save the current data? This will commit all your changes.
+    </p>
+    <div class="flex justify-end space-x-3">
+      <button 
+        class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+        (click)="cancelSave()">
+        Cancel
+      </button>
+      <button 
+        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+        (click)="saveData()">
+        Save
+      </button>
     </div>
   </div>
 </div> 

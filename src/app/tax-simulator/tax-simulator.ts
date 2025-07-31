@@ -11,14 +11,44 @@ import { Header } from '../header/header';
   templateUrl: './tax-simulator.html'
 })
 export class TaxSimulatorComponent {
-  step = 1;
+  currentStep = 1;
   inputMethod: 'manual' | 'previous' | 'upload' = 'manual';
+  showSaveDialog = false;
 
-  goToStep(step: number) {
-    this.step = step;
+  goToStep(step: number): void {
+    if (step >= 1 && step <= 3) {
+      this.currentStep = step;
+    }
   }
 
-  setInputMethod(method: 'manual' | 'previous' | 'upload') {
+  setInputMethod(method: 'manual' | 'previous' | 'upload'): void {
     this.inputMethod = method;
+  }
+
+  nextStep(): void {
+    if (this.currentStep < 3) {
+      this.currentStep++;
+    }
+  }
+
+  previousStep(): void {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+    }
+  }
+
+  commitData(): void {
+    this.showSaveDialog = true;
+  }
+
+  saveData(): void {
+    // TODO: Implement save functionality
+    console.log('Saving data...');
+    this.showSaveDialog = false;
+    // Could navigate to a success page or show success message
+  }
+
+  cancelSave(): void {
+    this.showSaveDialog = false;
   }
 } 

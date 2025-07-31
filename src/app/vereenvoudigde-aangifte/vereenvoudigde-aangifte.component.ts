@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
-import { NgClass, NgSwitch, NgSwitchCase, NgIf, NgFor, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { NgIf, NgFor, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxDataService, DeclarationSection, TaxCalculationResults } from '../services/tax-data.service';
 import { FormattedNumberInputComponent } from '../components/formatted-number-input.component';
@@ -9,7 +9,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-vereenvoudigde-aangifte',
   standalone: true,
   imports: [
-    NgClass, NgSwitch, NgSwitchCase, NgIf, NgFor, CurrencyPipe, DatePipe, DecimalPipe,
+    NgIf, NgFor, CurrencyPipe, DecimalPipe,
     FormsModule, FormattedNumberInputComponent
   ],
   templateUrl: './vereenvoudigde-aangifte.component.html',
@@ -27,12 +27,16 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
   canUseReducedRate = true; // Code 1701
   isSmallCompanyFirstThreeYears = true; // Code 1801
   
-  // Data management properties
-  showImportDialog = false;
-  importDataText = '';
-  importMessage = '';
-  importSuccess = false;
-  lastSaved: Date = new Date();
+  // Voorafbetalingen data
+  voorafbetalingen = {
+    va1: 0,
+    va2: 0,
+    va3: 0,
+    va4: 0
+  };
+  voorafbetalingenOpen = true;
+  
+
 
   private dataSubscription?: Subscription;
   private resultsSubscription?: Subscription;
@@ -48,7 +52,6 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
         this.inputMethod = data.inputMethod;
         this.canUseReducedRate = data.canUseReducedRate;
         this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
-        this.lastSaved = data.lastUpdated;
       }
     });
 
@@ -133,52 +136,17 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
     this.taxDataService.updateTaxRateEligibility(this.canUseReducedRate, this.isSmallCompanyFirstThreeYears);
   }
 
-  selectMethod(method: 'manual' | 'previous' | 'upload'): void {
-    this.inputMethod = method;
-    this.inputMethodChange.emit(method);
-    this.taxDataService.updateInputMethod(method);
+  onVoorafbetalingChange(field: string, value: number): void {
+    this.voorafbetalingen[field as keyof typeof this.voorafbetalingen] = value;
+    // TODO: Update calculations based on voorafbetalingen
+    this.calculate();
   }
 
-  // Data management methods
-  resetToDefaults(): void {
-    this.taxDataService.resetToDefaults();
+  getTotalVoorafbetalingen(): number {
+    return this.voorafbetalingen.va1 + this.voorafbetalingen.va2 + this.voorafbetalingen.va3 + this.voorafbetalingen.va4;
   }
 
-  exportData(): void {
-    const data = this.taxDataService.exportData();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tax-data-' + new Date().toISOString().split('T')[0] + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  }
 
-  clearData(): void {
-    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      this.taxDataService.clearData();
-    }
-  }
 
-  importData(): void {
-    if (!this.importDataText.trim()) {
-      this.importMessage = 'Please enter data to import.';
-      this.importSuccess = false;
-      return;
-    }
 
-    const success = this.taxDataService.importData(this.importDataText);
-    if (success) {
-      this.importMessage = 'Data imported successfully!';
-      this.importSuccess = true;
-      this.showImportDialog = false;
-      this.importDataText = '';
-    } else {
-      this.importMessage = 'Failed to import data. Please check the JSON format.';
-      this.importSuccess = false;
-    }
-  }
 }

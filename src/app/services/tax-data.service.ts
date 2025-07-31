@@ -71,6 +71,13 @@ export interface TaxCalculationResults {
   prepaymentPenalty: number;
   finalTaxDue: number;
   
+  // Display-oriented calculation results
+  taxAtReducedRate: number;
+  taxAtStandardRate: number;
+  nonRefundableWithholding: number;
+  refundableWithholding: number;
+  separateAssessment: number;
+  
   // Prepayment optimization
   requiredPrepayments: number;
   currentPrepayments: number;
@@ -254,6 +261,12 @@ export class TaxDataService {
       requiredPrepayments
     );
 
+    const taxAtReducedRate = reducedRateBase * 0.20;
+    const taxAtStandardRate = standardRateBase * 0.25;
+    const separateAssessment = code1508 * 0.10;
+    const nonRefundableWithholding = -limitedCode1830;
+    const refundableWithholding = -code1840;
+
     return {
       section1Total,
       section2Total: code1420, // Now just code 1420
@@ -278,7 +291,12 @@ export class TaxDataService {
       limitedSection4Total: limitedSection6Total,
       code1460,
       code1430: resterendResultaat,
-      code1440: code1440
+      code1440: code1440,
+      taxAtReducedRate,
+      taxAtStandardRate,
+      nonRefundableWithholding,
+      refundableWithholding,
+      separateAssessment
     };
   }
 

@@ -21,9 +21,17 @@
         </nav>
       </div>
       <div class="flex items-center space-x-4">
-        <!-- TODO: Replace with Angular icon components or SVGs -->
-        <span class="w-5 h-5 text-gray-500">[Calculator]</span>
-        <span class="w-5 h-5 text-gray-500">[Settings]</span>
+        <!-- Data Management -->
+        <div class="flex items-center space-x-3">
+          <span class="text-xs text-gray-500">
+            Last saved: {{ lastSaved | date:'short' }}
+          </span>
+          <button 
+            class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+            (click)="resetData()">
+            Reset
+          </button>
+        </div>
         <div class="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center">
           <span class="text-white font-semibold text-sm">WD</span>
         </div>
