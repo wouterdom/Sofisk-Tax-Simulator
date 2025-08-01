@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { TaxData, Prepayments } from '@app/services/tax-data.types';
+import { TaxData, Prepayments, PrepaymentCalculationGoal } from '@app/services/tax-data.types';
 import { LoggingService } from '@app/services/logging.service';
 import { TaxError, TaxErrorCodes } from '@app/services/tax-error';
 
@@ -70,7 +70,7 @@ export class TaxStorageService {
   private ensureDefaultFields(data: TaxData): void {
     try {
       if (data.prepaymentCalculationGoal === undefined) {
-        data.prepaymentCalculationGoal = 'GeenVermeerdering';
+        data.prepaymentCalculationGoal = PrepaymentCalculationGoal.GeenVermeerdering;
       }
       if (data.useSuggestedPrepayments === undefined) {
         data.useSuggestedPrepayments = false;
@@ -112,7 +112,7 @@ export class TaxStorageService {
       prepayments: { ...defaultPrepayments },
       committedPrepayments: { ...defaultPrepayments },
       prepaymentStrategy: 'spread',
-      prepaymentCalculationGoal: 'GeenVermeerdering',
+      prepaymentCalculationGoal: PrepaymentCalculationGoal.GeenVermeerdering,
       prepaymentConcentration: 'spread',
       useSuggestedPrepayments: false,
       canUseReducedRate: false,

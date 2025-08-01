@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
+import { PrepaymentCalculationGoal } from './tax-enums';
 
 // =========================================
 // Data Structures & Interfaces
@@ -36,7 +37,7 @@ export interface Prepayments {
 }
 
 export type PrepaymentStrategy = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
-export type PrepaymentCalculationGoal = 'GeenVermeerdering' | 'SaldoNul';
+export { PrepaymentCalculationGoal } from './tax-enums';
 export type PrepaymentConcentration = PrepaymentStrategy;
 
 export interface CalculationRow {
@@ -418,29 +419,45 @@ export class MainCalculationEngineService {
 
     let dataForCalculation = data;
 
-    // If "Geen vermeerdering" is selected or it's a small company in first 3 years with "Geen vermeerdering",
-    // force all prepayments to 0 regardless of other settings
-    if (data.prepaymentCalculationGoal === 'GeenVermeerdering') {
+    // Handle prepayment calculations based on goal and company status
+    if (data.prepaymentCalculationGoal === PrepaymentCalculationGoal.None) {
+      // For initial empty state, force prepayments to 0
       dataForCalculation = {
         ...data,
-        prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 },
-        prepaymentConcentration: 'spread' // Reset concentration as it has no effect
+        prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 }
       };
+    } else if (data.prepaymentCalculationGoal === 'GeenVermeerdering' && data.isSmallCompanyFirstThreeYears) {
+      // For "Geen vermeerdering" and small company in first 3 years,
+      // we should force prepayments to 0 since no tax increase is possible
+      dataForCalculation = {
+        ...data,
+        prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 }
+      };
+    } else if (data.prepaymentCalculationGoal === 'SaldoNul') {
+      // For "Saldo belasting = 0", always use the current prepayments
+      // and let the calculation engine determine the values
+      dataForCalculation = { ...data };
+    } else {
+      // For all other cases, use the current prepayments
+      dataForCalculation = { ...data };
     }
-    // Only calculate suggested prepayments for "Saldo Nul" goal
-    else if (data.useSuggestedPrepayments) {
-      const prelimResults = this.calculateTaxResults(data);
-      const taxIncreaseBase = prelimResults.voorheffingenRows.find(r => r.description === 'Saldo 2')?.result ?? 0;
-      const sepRow = prelimResults.resultRows.find(r => r.code === '1508');
-      const separateAssessment = sepRow ? sepRow.result : 0;
-      const suggestedPrepayments = this._calculateSuggestedPrepayments(
-        data.prepaymentCalculationGoal,
-        taxIncreaseBase,
-        separateAssessment,
-        data.isSmallCompanyFirstThreeYears,
-        data.prepaymentConcentration
-      );
-      
+
+    // Calculate suggested prepayments for all cases except when explicitly disabled
+    // This ensures we always have calculated values when navigating to screen 3
+    const prelimResults = this.calculateTaxResults(data);
+    const taxIncreaseBase = prelimResults.voorheffingenRows.find(r => r.description === 'Saldo 2')?.result ?? 0;
+    const sepRow = prelimResults.resultRows.find(r => r.code === '1508');
+    const separateAssessment = sepRow ? sepRow.result : 0;
+    const suggestedPrepayments = this._calculateSuggestedPrepayments(
+      data.prepaymentCalculationGoal,
+      taxIncreaseBase,
+      separateAssessment,
+      data.isSmallCompanyFirstThreeYears,
+      data.prepaymentConcentration
+    );
+    
+    // Use suggested prepayments unless explicitly disabled
+    if (data.useSuggestedPrepayments !== false) {
       dataForCalculation = {
         ...data,
         prepayments: suggestedPrepayments
@@ -567,11 +584,10 @@ export class MainCalculationEngineService {
           
           // Handle missing fields with defaults
           if (data.prepaymentCalculationGoal === undefined) {
-            data.prepaymentCalculationGoal = 'GeenVermeerdering';
+            data.prepaymentCalculationGoal = PrepaymentCalculationGoal.GeenVermeerdering;
           }
-          if (data.useSuggestedPrepayments === undefined) {
-            data.useSuggestedPrepayments = false;
-          }
+          // Forcibly enable simulation on load for consistent behavior.
+          data.useSuggestedPrepayments = true;
           if (data.prepaymentConcentration === undefined) {
             data.prepaymentConcentration = 'spread';
           }
@@ -653,11 +669,21 @@ export class MainCalculationEngineService {
       const updatedData: TaxData = {
         ...currentData,
         prepaymentCalculationGoal: goal,
-        useSuggestedPrepayments: true,
+        // Enable suggested prepayments for all cases except when a small company (code 1801) selects 'GeenVermeerdering'
+        useSuggestedPrepayments: !(goal === 'GeenVermeerdering' && currentData.isSmallCompanyFirstThreeYears),
         lastUpdated: new Date()
       };
+      
+      // Reset prepayments to 0 when switching to GeenVermeerdering with code 1801
+      if (goal === 'GeenVermeerdering' && currentData.isSmallCompanyFirstThreeYears) {
+        updatedData.prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
+      }
+      
       this.saveData(updatedData);
       this.dataSubject.next(updatedData);
+      
+      // Explicitly trigger calculation after updating data
+      this.performCalculation(updatedData);
     }
   }
 
@@ -672,6 +698,9 @@ export class MainCalculationEngineService {
       };
       this.saveData(updatedData);
       this.dataSubject.next(updatedData);
+      
+      // Explicitly trigger calculation after updating concentration
+      this.performCalculation(updatedData);
     }
   }
 
@@ -1012,9 +1041,9 @@ export class MainCalculationEngineService {
       prepayments: { ...defaultPrepayments },
       committedPrepayments: { ...defaultPrepayments },
       prepaymentStrategy: 'spread',
-      prepaymentCalculationGoal: 'GeenVermeerdering',
+      prepaymentCalculationGoal: PrepaymentCalculationGoal.GeenVermeerdering,
       prepaymentConcentration: 'spread',
-      useSuggestedPrepayments: false,
+      useSuggestedPrepayments: true,
       canUseReducedRate: false,
       isSmallCompanyFirstThreeYears: false,
       lastUpdated: new Date()

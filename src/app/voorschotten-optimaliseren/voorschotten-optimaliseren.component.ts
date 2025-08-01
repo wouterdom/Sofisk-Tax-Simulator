@@ -1,6 +1,10 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/main-calculation-engine.service';
+import { Prepayments, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/tax-data.types';
+import { PrepaymentCalculationGoal } from '../services/tax-enums';
+
+// Make enum available in the template
+const PREPAYMENT_GOAL = PrepaymentCalculationGoal;
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
 import { BaseTaxComponent } from '../components/base-tax.component';
 import { VoorafbetalingenComponent } from '../components/voorafbetalingen.component';
@@ -16,7 +20,8 @@ import { UIClassDirective } from '../components/ui-classes.directive';
 export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   // --- Component State ---
   public prepayments: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
-  public calculationGoal: PrepaymentCalculationGoal = 'GeenVermeerdering';
+  public calculationGoal: PrepaymentCalculationGoal = PREPAYMENT_GOAL.GeenVermeerdering;
+  public readonly PREPAYMENT_GOAL = PREPAYMENT_GOAL; // Make enum available in template
   public prepaymentConcentration: PrepaymentConcentration = 'spread';
   public isSmallCompanyFirstThreeYears = false;
 
@@ -41,6 +46,14 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   protected override onInit(): void {
     // Always get the last committed values for the original column
     this.originalPrepayments = this.taxDataService.getCommittedPrepayments();
+    
+    // Trigger an initial calculation to ensure simulation values are calculated immediately
+    const currentData = this.taxDataService.getData();
+    if (currentData) {
+      // Force a recalculation by updating the prepayment calculation goal
+      // This will trigger the reactive calculation system
+      this.taxDataService.updatePrepaymentCalculationGoal(currentData.prepaymentCalculationGoal);
+    }
   }
 
   protected override handleDataChange(data: TaxData | null): void {
@@ -57,18 +70,37 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   protected override handleResultsChange(results: TaxCalculationResults | null): void {
     if (results) {
       console.log('Results changed, suggested prepayments:', results.suggestedPrepayments);
-      // Always update prepayments from results when we have suggested prepayments
       const currentData = this.taxDataService.getData();
-      console.log('Current data useSuggestedPrepayments:', currentData?.useSuggestedPrepayments);
-      if (currentData?.useSuggestedPrepayments && results.suggestedPrepayments) {
-        console.log('Updating prepayments to:', results.suggestedPrepayments);
-        // Only update if values actually changed to prevent loops
-        if (JSON.stringify(this.prepayments) !== JSON.stringify(results.suggestedPrepayments)) {
-          this.prepayments = { ...results.suggestedPrepayments };
-          this.checkIfModified();
-          // Force change detection to update the UI immediately
-          this.cdr.detectChanges();
-        }
+      
+      let newPrepayments: Prepayments;
+      
+      if (currentData?.prepaymentCalculationGoal === PrepaymentCalculationGoal.SaldoNul) {
+        // For "Saldo belasting = 0", use the suggested prepayments
+        newPrepayments = results.suggestedPrepayments;
+      } else {
+        // For other cases, get values from vermeerderingRows
+        const va1Row = results.vermeerderingRows.find(r => r.code === '1811');
+        const va2Row = results.vermeerderingRows.find(r => r.code === '1812');
+        const va3Row = results.vermeerderingRows.find(r => r.code === '1813');
+        const va4Row = results.vermeerderingRows.find(r => r.code === '1814');
+        
+        newPrepayments = {
+          va1: va1Row?.amount || 0,
+          va2: va2Row?.amount || 0,
+          va3: va3Row?.amount || 0,
+          va4: va4Row?.amount || 0
+        };
+      }
+
+      // Only update if values actually changed to prevent loops
+      if (JSON.stringify(this.prepayments) !== JSON.stringify(newPrepayments)) {
+        this.prepayments = { ...newPrepayments };
+        
+        // Reset manual changes flag when new calculated results come in
+        // (unless user is currently in edit mode)
+        this.checkIfModified();
+        // Force change detection to update the UI immediately
+        this.cdr.detectChanges();
       }
     }
   }
@@ -81,10 +113,19 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
    */
   public handleCalculationGoalChange(): void {
     console.log('Calculation goal changed to:', this.calculationGoal);
+    
+    // When switching to "Geen vermeerdering", reset prepayments to 0
+    if (this.calculationGoal === PrepaymentCalculationGoal.GeenVermeerdering && this.isSmallCompanyFirstThreeYears) {
+      this.prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
+      this.taxDataService.updatePrepayments(this.prepayments, false);
+    }
+    
     this.taxDataService.updatePrepaymentCalculationGoal(this.calculationGoal);
     // Single change detection is sufficient
     this.cdr.detectChanges();
   }
+
+
   
   /**
    * Handles changes from the concentration options.

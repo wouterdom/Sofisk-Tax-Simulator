@@ -15,6 +15,16 @@ This central document provides all the necessary information for users, develope
 ### Development Server
 Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
 
+**Note for Windows PowerShell users:** Use separate commands instead of `&&`:
+```powershell
+cd C:\path\to\Sofisk-Tax-Simulator
+npm start
+```
+Or use `;` as the command separator in PowerShell:
+```powershell
+cd C:\path\to\Sofisk-Tax-Simulator; npm start
+```
+
 ### Build
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
 

@@ -1,6 +1,7 @@
 import { Directive, OnInit, OnDestroy, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { MainCalculationEngineService, TaxData, TaxCalculationResults } from '../services/main-calculation-engine.service';
+import { MainCalculationEngineService } from '../services/main-calculation-engine.service';
+import { TaxData, TaxCalculationResults } from '../services/tax-data.types';
 
 /**
  * Base class for components that need to subscribe to TaxDataService observables.

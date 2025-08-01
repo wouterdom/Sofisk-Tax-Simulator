@@ -24,10 +24,12 @@ export interface Prepayments {
   va2: number;
   va3: number;
   va4: number;
+  [key: string]: number;  // Add index signature for dynamic access
 }
 
+import { PrepaymentCalculationGoal } from './tax-enums';
+export { PrepaymentCalculationGoal };
 export type PrepaymentStrategy = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
-export type PrepaymentCalculationGoal = 'GeenVermeerdering' | 'SaldoNul';
 export type PrepaymentConcentration = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
 
 export interface CalculationRow {
