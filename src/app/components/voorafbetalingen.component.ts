@@ -8,6 +8,7 @@ export interface VoorafbetalingenData {
   va2: number;
   va3: number;
   va4: number;
+  [key: string]: number;
 }
 
 @Component({
@@ -91,7 +92,7 @@ export class VoorafbetalingenComponent implements OnInit {
   @Input() isExpanded = true;
   
   @Output() dataChange = new EventEmitter<VoorafbetalingenData>();
-  @Output() valueChange = new EventEmitter<{ key: string; value: number }>();
+  @Output() valueChange = new EventEmitter<{ key: keyof VoorafbetalingenData; value: number }>();
   @Output() expandedChange = new EventEmitter<boolean>();
 
   ngOnInit(): void {

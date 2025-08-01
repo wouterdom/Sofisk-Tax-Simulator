@@ -64,7 +64,7 @@
                   <h4 class="font-medium text-gray-900">{{ section.title }}</h4>
                   <span class="text-sm font-medium flex items-center">
                     @if (section.title === 'Aftrekken resterende winst - korfbeperking' && calculationResults) {
-                      <span class="mr-2">{{ calculationResults.limitedSection4Total | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+                      <span class="mr-2">{{ calculationResults.limitedAftrekkenResterendeWinstKorfbeperkingTotal | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
                     }
                     @if (section.title !== 'Aftrekken resterende winst - korfbeperking' && section.total) {
                       <span class="mr-2">{{ section.total.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>

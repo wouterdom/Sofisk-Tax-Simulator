@@ -1,19 +1,20 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { TaxDataService } from '../services/tax-data.service';
+import { MainCalculationEngineService } from '../services/main-calculation-engine.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
+  standalone: true,
   imports: [DatePipe],
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
-export class Header implements OnInit, OnDestroy {
+export class HeaderComponent implements OnInit, OnDestroy {
   lastSaved: Date = new Date();
   private dataSubscription?: Subscription;
 
-  constructor(private taxDataService: TaxDataService) {}
+  constructor(private taxDataService: MainCalculationEngineService) {}
 
   ngOnInit(): void {
     // Subscribe to data changes to get last saved date

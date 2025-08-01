@@ -10,57 +10,57 @@ This document explains the calculation methodology implemented in the Sofisk Tax
 ### 0.1 Section Totals
 The calculation starts by determining the base values from the nine main declaration sections:
 
-- **Section 1 Total**: Resultaat van het belastbare tijdperk
+- **ResultaatVanHetBelastbareTijdperkTotal (Total 1)**: Resultaat van het belastbare tijdperk
   - Sum of all fields in section 1 (codes 1080, 1240, 1320)
   
-- **Code 1420**: Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is
+- **BestanddelenVhResultaatAftrekbeperking (Code 1420)**: Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is
   - Standalone field (no section header)
   
-- **Section 4 Total**: Aftrekken van de resterende winst
+- **AftrekkenVanDeResterendeWinstTotal (Total 4)**: Aftrekken van de resterende winst
   - Sum of all fields in section 4 (codes 1432, 1433, 1439, 1438, 1437, 1445)
   
-- **Section 6 Total**: Aftrekken resterende winst - korfbeperking
+- **AftrekkenResterendeWinstKorfbeperkingTotal (Total 6)**: Aftrekken resterende winst - korfbeperking
   - Sum of all fields in section 6 (codes 1441, 1442, 1436, 1443)
   
-- **Section 8 Total**: Afzonderlijk te belasten
+- **AfzonderlijkTeBelastenTotal (Total 8)**: Afzonderlijk te belasten
   - Sum of all fields in section 8 (code 1508)
   
-- **Section 9 Total**: Voorheffing
+- **VoorheffingTotal (Total 9)**: Voorheffing
   - Sum of all fields in section 9 (codes 1830, 1840)
 
-### 0.2 Code 1430 Calculation (Resterend resultaat)
+### 0.2 ResterendResultaat Calculation (Code 1430)
 The first intermediate calculation:
 
 ```
-Code 1430 = Section 1 Total - Code 1420
+ResterendResultaat = ResultaatVanHetBelastbareTijdperkTotal - BestanddelenVhResultaatAftrekbeperking
 ```
 
-### 0.3 Code 1440 Calculation (Grondslag voor de berekening korf)
+### 0.3 GrondslagVoorBerekeningKorf Calculation (Code 1440)
 The second intermediate calculation:
 
 ```
-Code 1440 = Code 1430 - Section 4 Total
+GrondslagVoorBerekeningKorf = ResterendResultaat - AftrekkenVanDeResterendeWinstTotal
 ```
 
-### 0.4 Code 1460 Calculation (Belastbare winst gewoon tarief)
+### 0.4 BelastbareWinstGewoonTarief Calculation (Code 1460)
 The core taxable income is calculated as:
 
 ```
-Code 1460 (before korfbeperking) = Code 1440 - Section 6 Total (limited by korfbeperking)
+BelastbareWinstGewoonTarief (before korfbeperking) = GrondslagVoorBerekeningKorf - AftrekkenResterendeWinstKorfbeperkingTotal (limited by korfbeperking)
 ```
 
 ### 0.5 Korfbeperking (Basket Limitation)
-The korfbeperking limits the deductibility of section 6 items and is calculated using Code 1440:
+The korfbeperking limits the deductibility of section 6 items and is calculated using GrondslagVoorBerekeningKorf:
 
 ```
-Korfbeperking = MIN(Code 1440, 1,000,000) + MAX(0, Code 1440 - 1,000,000) × 0.7
+Korfbeperking = MIN(GrondslagVoorBerekeningKorf, 1,000,000) + MAX(0, GrondslagVoorBerekeningKorf - 1,000,000) × 0.7
 ```
 
-**Limited Section 6 Total** = MIN(Section 6 Total, Korfbeperking)
+**LimitedAftrekkenResterendeWinstKorfbeperkingTotal** = MIN(AftrekkenResterendeWinstKorfbeperkingTotal, Korfbeperking)
 
-**Code 1460 (before constraint)** = MAX(0, Code 1440 - Limited Section 6 Total)
+**BelastbareWinstGewoonTarief (before constraint)** = MAX(0, GrondslagVoorBerekeningKorf - LimitedAftrekkenResterendeWinstKorfbeperkingTotal)
 
-**Final Code 1460** = Code 1460 (before constraint) + Code 1420
+**Final BelastbareWinstGewoonTarief** = BelastbareWinstGewoonTarief (before constraint) + BestanddelenVhResultaatAftrekbeperking
 
 ---
 
@@ -197,10 +197,10 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 ### Data Flow
 1. User inputs data in declaration sections
 2. Section totals are calculated automatically
-3. Code 1430 is calculated: Section 1 total - Code 1420
-4. Code 1440 is calculated: Code 1430 - Section 4 total
-5. Korfbeperking is applied to section 6 deductions using Code 1440
-6. Code 1460 is calculated: Code 1440 - Limited Section 6 total + Code 1420
+3. ResterendResultaat is calculated: ResultaatVanHetBelastbareTijdperkTotal - BestanddelenVhResultaatAftrekbeperking
+4. GrondslagVoorBerekeningKorf is calculated: ResterendResultaat - AftrekkenVanDeResterendeWinstTotal
+5. Korfbeperking is applied to AftrekkenResterendeWinstKorfbeperkingTotal using GrondslagVoorBerekeningKorf
+6. BelastbareWinstGewoonTarief is calculated: GrondslagVoorBerekeningKorf - LimitedAftrekkenResterendeWinstKorfbeperkingTotal + BestanddelenVhResultaatAftrekbeperking
 7. Tax rates are applied based on eligibility (20% reduced rate for first €100,000 if applicable)
 8. Saldo 1 is calculated: Main tax calculation (reduced rate + standard rate)
 9. Voorheffingen are deducted (with Code 1830 limited to Saldo 1)
@@ -215,7 +215,6 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 - **Reactive calculations**: All calculations update automatically when data changes
 - **Debounced updates**: Calculations are optimized with 300ms debounce
 - **Data persistence**: All data is saved to localStorage
-- **Export/Import**: Data can be exported and imported as JSON
 - **Multiple input methods**: Manual entry, previous year basis, or file upload
 - **De-minimis rule**: Prevents small amounts from triggering additional charges
 - **Small company exception**: No vermeerdering for first three years
@@ -229,15 +228,15 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 
 ### Section Structure
 The current section structure is:
-1. **Section 1**: Resultaat van het belastbare tijdperk
-2. **Section 2**: Code 1420 (standalone field, no header)
-3. **Section 3**: Code 1430 subtotal (Resterend resultaat)
-4. **Section 4**: Aftrekken van de resterende winst
-5. **Section 5**: Code 1440 subtotal (Grondslag voor de berekening korf)
-6. **Section 6**: Aftrekken resterende winst - korfbeperking
-7. **Section 7**: Code 1460 subtotal (Belastbare winst gewoon tarief)
-8. **Section 8**: Afzonderlijk te belasten
-9. **Section 9**: Voorheffing
+1. **Section 1**: Resultaat van het belastbare tijdperk (ResultaatVanHetBelastbareTijdperkTotal)
+2. **Code 1420**: Bestanddelen vh resultaat waarop de aftrekbeperking van toepassing is (BestanddelenVhResultaatAftrekbeperking)
+3. **Code 1430**: Resterend resultaat (ResterendResultaat)
+4. **Section 4**: Aftrekken van de resterende winst (AftrekkenVanDeResterendeWinstTotal)
+5. **Code 1440**: Grondslag voor de berekening korf (GrondslagVoorBerekeningKorf)
+6. **Section 6**: Aftrekken resterende winst - korfbeperking (AftrekkenResterendeWinstKorfbeperkingTotal)
+7. **Code 1460**: Belastbare winst gewoon tarief (BelastbareWinstGewoonTarief)
+8. **Section 8**: Afzonderlijk te belasten (AfzonderlijkTeBelastenTotal)
+9. **Section 9**: Voorheffing (VoorheffingTotal)
 
 ### Tax Rates Summary
 - **Reduced rate**: 20% (first €100,000 if eligible)
@@ -254,4 +253,4 @@ The following features are planned for future implementation:
 - More sophisticated prepayment optimization algorithms
 - Integration with accounting software
 - Multi-year planning capabilities
-- Advanced reporting and analysis tools 
+- Advanced reporting and analysis tools

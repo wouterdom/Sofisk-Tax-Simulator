@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { NgClass, CurrencyPipe, DecimalPipe } from '@angular/common';
-import { TaxCalculationResults } from '../services/tax-data.service';
+import { TaxCalculationResults } from '../services/main-calculation-engine.service';
 import { LoadingIndicatorComponent } from './loading-indicator.component';
 
 @Component({

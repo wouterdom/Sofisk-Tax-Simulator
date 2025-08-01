@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DeclarationSection } from '../services/tax-data.service';
+import { DeclarationSection } from '../services/main-calculation-engine.service';
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
 import { BaseTaxComponent } from '../components/base-tax.component';
 import { VoorafbetalingenComponent } from '../components/voorafbetalingen.component';
@@ -20,9 +20,6 @@ import { FormattedNumberInputComponent } from '../components/formatted-number-in
   styleUrl: './vereenvoudigde-aangifte.component.css'
 })
 export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
-  @Input() inputMethod: 'manual' | 'previous' | 'upload' = 'manual';
-  @Output() inputMethodChange = new EventEmitter<'manual' | 'previous' | 'upload'>();
-
   declarationSections: DeclarationSection[] = [];
 
   constructor(private cdr: ChangeDetectorRef) {
@@ -46,7 +43,6 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
   protected override handleDataChange(data: any): void {
     if (data) {
       this.declarationSections = data.declarationSections;
-      this.inputMethod = data.inputMethod;
       this.canUseReducedRate = data.canUseReducedRate;
       this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
       // Always update the UI fields to the latest committed prepayments
@@ -70,44 +66,44 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
       }
     });
 
-    // Calculate code 1430 (Resterend resultaat): Section 1 total - code 1420
-    const section1Total = this.declarationSections[0].total?.value || 0;
-    const code1420 = this.declarationSections[1].fields[0]?.value || 0;
+    // Calculate resterend resultaat (Code 1430): ResultaatVanHetBelastbareTijdperkTotal - BestanddelenVhResultaatAftrekbeperking
+    const resultaatVanHetBelastbareTijdperkTotal = this.declarationSections[0].total?.value || 0;
+    const bestanddelenVhResultaatAftrekbeperking = this.declarationSections[1].fields[0]?.value || 0;
     const subtotalSection1430 = this.declarationSections[2]; // Section 3
     
     if (subtotalSection1430.subtotal) {
-      subtotalSection1430.subtotal.value = Math.max(0, section1Total - code1420);
+      subtotalSection1430.subtotal.value = Math.max(0, resultaatVanHetBelastbareTijdperkTotal - bestanddelenVhResultaatAftrekbeperking);
     }
 
-    // Calculate code 1440 (Grondslag voor de berekening korf): Code 1430 - Section 4 total
-    const section4Total = this.declarationSections[3].total?.value || 0;
+    // Calculate grondslag voor de berekening korf (Code 1440): ResterendResultaat - AftrekkenVanDeResterendeWinstTotal
+    const aftrekkenVanDeResterendeWinstTotal = this.declarationSections[3].total?.value || 0;
     const subtotalSection1440 = this.declarationSections[4]; // Section 5
     
     if (subtotalSection1440.subtotal) {
-      subtotalSection1440.subtotal.value = Math.max(0, (subtotalSection1430.subtotal?.value || 0) - section4Total);
+      subtotalSection1440.subtotal.value = Math.max(0, (subtotalSection1430.subtotal?.value || 0) - aftrekkenVanDeResterendeWinstTotal);
     }
 
-    // Calculate code 1460 (Belastbare winst gewoon tarief): Code 1440 - Section 6 total (with korfbeperking)
-    const section6Total = this.declarationSections[5].total?.value || 0;
+    // Calculate belastbare winst gewoon tarief (Code 1460): GrondslagVoorBerekeningKorf - LimitedAftrekkenResterendeWinstKorfbeperkingTotal
+    const aftrekkenResterendeWinstKorfbeperkingTotal = this.declarationSections[5].total?.value || 0;
     const subtotalSection1460 = this.declarationSections[6]; // Section 7
     
     if (subtotalSection1460.subtotal) {
       // Apply korfbeperking to section 6 deductions
       const korfbeperking = this.calculateKorfbeperking(subtotalSection1440.subtotal?.value || 0);
-      const limitedSection6Total = Math.min(section6Total, korfbeperking);
+      const limitedAftrekkenResterendeWinstKorfbeperkingTotal = Math.min(aftrekkenResterendeWinstKorfbeperkingTotal, korfbeperking);
       
-      // Calculate code 1460: actual result + code 1420
-      const code1460BeforeConstraint = Math.max(0, (subtotalSection1440.subtotal?.value || 0) - limitedSection6Total);
-      subtotalSection1460.subtotal.value = code1460BeforeConstraint + code1420;
+      // Calculate belastbare winst gewoon tarief: actual result + bestanddelenVhResultaatAftrekbeperking
+      const belastbareWinstGewoonTariefBeforeConstraint = Math.max(0, (subtotalSection1440.subtotal?.value || 0) - limitedAftrekkenResterendeWinstKorfbeperkingTotal);
+      subtotalSection1460.subtotal.value = belastbareWinstGewoonTariefBeforeConstraint + bestanddelenVhResultaatAftrekbeperking;
     }
 
     // Save updated data to service immediately
     this.taxDataService.updateDeclarationSections(this.declarationSections);
   }
 
-  private calculateKorfbeperking(code1440: number): number {
-    // Korfbeperking formula: MIN(code1440, 1000000) + MAX(0, code1440 - 1000000) * 0.7
-    return Math.min(code1440, 1000000) + Math.max(0, code1440 - 1000000) * 0.7;
+  private calculateKorfbeperking(grondslagVoorBerekeningKorf: number): number {
+    // Korfbeperking formula: MIN(grondslagVoorBerekeningKorf, 1000000) + MAX(0, grondslagVoorBerekeningKorf - 1000000) * 0.7
+    return Math.min(grondslagVoorBerekeningKorf, 1000000) + Math.max(0, grondslagVoorBerekeningKorf - 1000000) * 0.7;
   }
 
   onTaxRateCheckboxChange(): void {

@@ -1,6 +1,6 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, TaxData } from '../services/tax-data.service';
+import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/main-calculation-engine.service';
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
 import { BaseTaxComponent } from '../components/base-tax.component';
 import { VoorafbetalingenComponent } from '../components/voorafbetalingen.component';
@@ -18,6 +18,7 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   public prepayments: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
   public calculationGoal: PrepaymentCalculationGoal = 'GeenVermeerdering';
   public prepaymentConcentration: PrepaymentConcentration = 'spread';
+  public isSmallCompanyFirstThreeYears = false;
 
   constructor(private cdr: ChangeDetectorRef) {
     super();
@@ -48,11 +49,12 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
       // Always reflect the goal and concentration from the service.
       this.calculationGoal = data.prepaymentCalculationGoal;
       this.prepaymentConcentration = data.prepaymentConcentration;
+      this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
       this.checkIfModified();
     }
   }
 
-  protected override handleResultsChange(results: any): void {
+  protected override handleResultsChange(results: TaxCalculationResults | null): void {
     if (results) {
       console.log('Results changed, suggested prepayments:', results.suggestedPrepayments);
       // Always update prepayments from results when we have suggested prepayments
@@ -60,12 +62,13 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
       console.log('Current data useSuggestedPrepayments:', currentData?.useSuggestedPrepayments);
       if (currentData?.useSuggestedPrepayments && results.suggestedPrepayments) {
         console.log('Updating prepayments to:', results.suggestedPrepayments);
-        this.prepayments = { ...results.suggestedPrepayments };
-        // Also update the service to ensure the calculation uses these values
-        this.taxDataService.updatePrepayments(this.prepayments, false);
-        this.checkIfModified();
-        // Force change detection to update the UI immediately
-        this.cdr.detectChanges();
+        // Only update if values actually changed to prevent loops
+        if (JSON.stringify(this.prepayments) !== JSON.stringify(results.suggestedPrepayments)) {
+          this.prepayments = { ...results.suggestedPrepayments };
+          this.checkIfModified();
+          // Force change detection to update the UI immediately
+          this.cdr.detectChanges();
+        }
       }
     }
   }
@@ -79,15 +82,8 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   public handleCalculationGoalChange(): void {
     console.log('Calculation goal changed to:', this.calculationGoal);
     this.taxDataService.updatePrepaymentCalculationGoal(this.calculationGoal);
-    // Force change detection to ensure UI updates immediately
+    // Single change detection is sufficient
     this.cdr.detectChanges();
-    // Also trigger another change detection after a short delay to ensure async updates are reflected
-    setTimeout(() => {
-      this.cdr.detectChanges();
-    }, 100);
-    // The service will automatically set useSuggestedPrepayments to true
-    // and trigger a recalculation, which will update the results
-    // The handleResultsChange method will then apply the suggested prepayments
   }
   
   /**
@@ -96,15 +92,8 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   public handleConcentrationChange(): void {
     console.log('Concentration changed to:', this.prepaymentConcentration);
     this.taxDataService.updatePrepaymentConcentration(this.prepaymentConcentration);
-    // Force change detection to ensure UI updates immediately
+    // Single change detection is sufficient
     this.cdr.detectChanges();
-    // Also trigger another change detection after a short delay to ensure async updates are reflected
-    setTimeout(() => {
-      this.cdr.detectChanges();
-    }, 100);
-    // The service will automatically set useSuggestedPrepayments to true
-    // and trigger a recalculation, which will update the results
-    // The handleResultsChange method will then apply the suggested prepayments
   }
 
   public onPrepaymentsDataChange(newData: Prepayments): void {
@@ -149,6 +138,7 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
     this.prepayments = this.taxDataService.getCommittedPrepayments();
     // Also update the service to ensure calculation results are reset
     this.taxDataService.updatePrepayments(this.prepayments, false);
+    this.taxDataService.stopUsingSuggestedPrepayments();
     this.checkIfModified();
   }
 
@@ -181,13 +171,13 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   /**
    * Helper to get a specific row from the calculation results for display.
    */
-  public getResultRow(code: string, descriptionPrefix: string): any {
+  public getResultRow(code: string, descriptionPrefix: string): { code: string; description: string; amount: number; rate: number | null; result: number; } | undefined {
     return this.calculationResults?.resultRows.find(
       row => row.code === code && row.description.startsWith(descriptionPrefix)
     );
   }
 
-  public getVermeerderingRow(descriptionPrefix: string): any {
+  public getVermeerderingRow(descriptionPrefix: string): { code: string; description: string; amount: number; rate: number | null; result: number; } | undefined {
     return this.calculationResults?.vermeerderingRows.find(
         row => row.description.startsWith(descriptionPrefix)
     );
