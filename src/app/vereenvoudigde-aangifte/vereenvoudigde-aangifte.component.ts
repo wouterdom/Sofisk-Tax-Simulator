@@ -52,6 +52,8 @@ export class VereenvoudigdeAangifteComponent implements OnInit, OnDestroy {
         this.inputMethod = data.inputMethod;
         this.canUseReducedRate = data.canUseReducedRate;
         this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
+        // Always update the UI fields to the latest committed prepayments
+        this.voorafbetalingen = this.taxDataService.getCommittedPrepayments();
       }
     });
 

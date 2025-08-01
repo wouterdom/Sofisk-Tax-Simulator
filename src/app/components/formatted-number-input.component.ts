@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, forwardRef, ChangeDetectorRef } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { NumberFormattingService } from '../services/number-formatting.service';
@@ -49,7 +49,10 @@ export class FormattedNumberInputComponent implements ControlValueAccessor {
   private onChange = (value: number) => {};
   private onTouched = () => {};
 
-  constructor(private numberFormatting: NumberFormattingService) {}
+  constructor(
+    private numberFormatting: NumberFormattingService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   onInputChange(event: Event): void {
     const target = event.target as HTMLInputElement;
@@ -67,6 +70,9 @@ export class FormattedNumberInputComponent implements ControlValueAccessor {
     // Emit numeric value
     this.valueChange.emit(numericValue);
     this.onChange(numericValue);
+    
+    // Force update
+    this.cdr.detectChanges();
   }
 
   onBlur(): void {
@@ -108,6 +114,8 @@ export class FormattedNumberInputComponent implements ControlValueAccessor {
   writeValue(value: number): void {
     this.numericValue = value || 0;
     this.displayValue = this.numberFormatting.formatNumberEU(this.numericValue);
+    // Ensure the component view is updated
+    this.cdr.detectChanges();
   }
 
   registerOnChange(fn: (value: number) => void): void {

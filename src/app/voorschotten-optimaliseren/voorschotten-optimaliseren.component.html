@@ -1,99 +1,162 @@
-<div class="space-y-6">
-  <!-- Optimization Strategy Selection -->
-  <div class="bg-white border rounded-lg p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">
-      Optimalisatie door vermeerdering te vermijden: 
-      <span class="text-red-600">(kies de gewenste optie)</span>
-    </h3>
-    
-    <div class="space-y-3">
-      <div *ngFor="let option of optimizationOptions" class="flex items-center">
-        <input
-          type="radio"
-          [id]="option.value"
-          name="optimizationStrategy"
-          [value]="option.value"
-          [(ngModel)]="prepaymentStrategy"
-          (change)="onOptimizationGoalChange()"
-          class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-        />
-        <label [for]="option.value" class="ml-2 text-sm text-gray-700">
-          {{ option.label }}
-        </label>
-      </div>
-    </div>
-  </div>
+<div class="p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-gray-50">
 
-  <!-- Prepayment Inputs -->
-  <div class="bg-white border rounded-lg p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Voorschotten invoeren</h3>
-    
-    <div class="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2 mb-4">
-      <span>Kwartaal</span>
-      <span>Vervaldatum</span>
-      <span>Bedrag (€)</span>
-      <span>Voorgesteld</span>
-    </div>
-    
-    <div *ngFor="let quarter of quarters; let i = index" class="grid grid-cols-4 gap-4 items-center py-2">
-      <span class="text-sm">{{ quarter.toUpperCase() }}</span>
-      <span class="text-sm text-gray-600">
-        {{ quarterLabels[i] }}
-      </span>
+  <!-- Left Column: Controls -->
+  <div class="flex flex-col space-y-6">
+    <!-- Calculation Goal Card -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Resultaat berekening</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="flex items-center space-x-3 cursor-pointer">
+            <input type="radio" name="calculationGoal" value="GeenVermeerdering" [(ngModel)]="calculationGoal" (change)="handleCalculationGoalChange()" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-gray-700">Geen vermeerdering</span>
+          </label>
+        </div>
+        <div>
+          <label class="flex items-center space-x-3 cursor-pointer">
+            <input type="radio" name="calculationGoal" value="SaldoNul" [(ngModel)]="calculationGoal" (change)="handleCalculationGoalChange()" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-gray-700">Saldo belasting = 0</span>
+          </label>
+        </div>
+      </div>
       
-      <app-formatted-number-input
-        [fieldName]="quarter"
-        [placeholder]="'0,00'"
-        (valueChange)="onPrepaymentChange(quarter, $event)">
-      </app-formatted-number-input>
-      <span
-        *ngIf="calculationResults && calculationResults.suggestedPrepayments"
-        class="text-sm text-blue-600"
-      >
-        {{
-          (getSuggestedPrepayment(quarter) ?? 0)
-            | currency: 'EUR':'symbol':'1.2-2':'nl-BE'
-        }}
-      </span>
+      <!-- Concentration options (only show for GeenVermeerdering) -->
+      <div class="mt-4 pt-4 border-t border-gray-200" *ngIf="calculationGoal === 'GeenVermeerdering'">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Verdeling voorafbetalingen</h4>
+        <div class="space-y-2">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="concentration" value="spread" [(ngModel)]="prepaymentConcentration" (change)="handleConcentrationChange()" class="h-3 w-3 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-sm text-gray-600">Gespreid over 4 kwartalen</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="concentration" value="q1" [(ngModel)]="prepaymentConcentration" (change)="handleConcentrationChange()" class="h-3 w-3 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-sm text-gray-600">Alles in kwartaal 1</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="concentration" value="q2" [(ngModel)]="prepaymentConcentration" (change)="handleConcentrationChange()" class="h-3 w-3 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-sm text-gray-600">Alles in kwartaal 2</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="concentration" value="q3" [(ngModel)]="prepaymentConcentration" (change)="handleConcentrationChange()" class="h-3 w-3 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-sm text-gray-600">Alles in kwartaal 3</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="concentration" value="q4" [(ngModel)]="prepaymentConcentration" (change)="handleConcentrationChange()" class="h-3 w-3 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+            <span class="text-sm text-gray-600">Alles in kwartaal 4</span>
+          </label>
+        </div>
+      </div>
     </div>
-    
-    <button
-      *ngIf="calculationResults?.suggestedPrepayments"
-      (click)="applySuggestedPrepayments()"
-      class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded transition-colors">
-      Pas voorgestelde voorschotten toe
-    </button>
+
+    <!-- Prepayments Input Card -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Voorafbetalingen</h3>
+      
+      <!-- Column headers -->
+      <div class="grid grid-cols-5 items-center mb-2 text-sm">
+        <div class="col-span-2"></div>
+        <div class="text-gray-500 text-center">Origineel (Stap 2)</div>
+        <div class="col-span-2 text-gray-700 text-center">Simulatie</div>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="grid grid-cols-5 items-center gap-2" *ngFor="let key of prepaymentKeys; let i = index">
+          <label [for]="key" class="text-gray-700 col-span-2">Voorafbetaling {{ i + 1 }}</label>
+          
+          <!-- Original value (greyed out) -->
+          <div class="text-gray-400 text-right bg-gray-50 px-3 py-2 rounded border border-gray-200">
+            {{ originalPrepayments[key] | currency:'EUR':'symbol':'1.2-2' }}
+          </div>
+          
+          <!-- Editable value -->
+          <div class="col-span-2">
+            <app-formatted-number-input
+              [id]="key"
+              [(ngModel)]="prepayments[key]"
+              (ngModelChange)="handlePrepaymentInputChange()">
+            </app-formatted-number-input>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Results Summary -->
-  <div *ngIf="calculationResults" class="bg-white border rounded-lg p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Resultaat</h3>
+  <!-- Right Column: Calculation Breakdown -->
+  <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Vermeerdering en Voorafbetalingen</h3>
     
-    <div class="grid grid-cols-2 gap-4 text-sm">
+    <div *ngIf="isLoading" class="flex justify-center items-center py-8">
+      <p class="text-gray-500">Herberekenen...</p>
+    </div>
+    
+    <div *ngIf="!isLoading && calculationResults" class="space-y-6">
+      <!-- Increase Calculation -->
       <div>
-        <span class="font-medium">Geschatte belastingschuld:</span>
-        <span class="ml-2">{{ calculationResults.totalTaxLiability | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+        <h4 class="font-semibold text-gray-700 mb-2">Berekening vermeerdering</h4>
+        <div class="flow-root">
+          <div *ngFor="let row of calculationResults.vermeerderingRows | slice:0:1" class="flex justify-between items-center py-2 border-b border-gray-100">
+            <p class="text-gray-600">{{ row.description }}</p>
+            <div class="flex items-center space-x-4">
+              <span class="text-gray-800 font-mono w-28 text-right">{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}</span>
+              <span class="text-gray-500 text-sm w-16 text-right">{{ row.rate }}%</span>
+              <span class="font-semibold text-gray-900 font-mono w-28 text-right">{{ row.result | currency:'EUR':'symbol':'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- Prepayment Benefits -->
       <div>
-        <span class="font-medium">Huidige voorschotten:</span>
-        <span class="ml-2">{{ calculationResults.currentPrepayments | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+        <div class="flow-root mt-2">
+          <div *ngFor="let row of calculationResults.vermeerderingRows | slice:1" class="flex justify-between items-center py-2 border-b border-gray-100">
+            <p class="text-gray-600">{{ row.description }} <span class="text-sm text-gray-400">({{ row.code }})</span></p>
+            <div class="flex items-center space-x-4">
+              <span class="text-gray-800 font-mono w-28 text-right">{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}</span>
+              <span class="text-gray-500 text-sm w-16 text-right">{{ row.rate }}%</span>
+              <span class="font-semibold text-gray-900 font-mono w-28 text-right">{{ row.result | currency:'EUR':'symbol':'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <span class="font-medium">Vereiste voorschotten (90%):</span>
-        <span class="ml-2">{{ calculationResults.requiredPrepayments | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+
+      <!-- Final Result Summary -->
+      <div class="pt-4">
+        <h4 class="font-semibold text-gray-700 mb-2">Resultaat</h4>
+        <div class="space-y-2">
+            <div *ngFor="let row of calculationResults.resultRows" class="flex justify-between items-center py-2" [ngClass]="{'border-t border-gray-200 pt-4 mt-4': row.description === 'Totaal te betalen'}">
+                <p class="text-gray-600">{{ row.description }} <span *ngIf="row.code" class="text-sm text-gray-400">({{ row.code }})</span></p>
+                <span class="font-semibold text-gray-900 font-mono">{{ row.result | currency:'EUR':'symbol':'1.2-2' }}</span>
+            </div>
+        </div>
+
+        <!-- Grand Total -->
+        <div class="flex justify-between items-center bg-gray-100 p-4 rounded-lg mt-4">
+            <p class="font-semibold text-lg text-gray-800">Te betalen belastingen</p>
+            <p class="font-bold text-lg text-indigo-600 font-mono">{{ calculationResults.finalTaxPayable | currency:'EUR':'symbol':'1.2-2' }}</p>
+        </div>
       </div>
-      <div>
-        <span class="font-medium">Tekort:</span>
-        <span class="ml-2" [ngClass]="calculationResults.shortfall > 0 ? 'text-red-600' : 'text-green-600'">
-          {{ calculationResults.shortfall | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
-        </span>
-      </div>
-      <div *ngIf="calculationResults.prepaymentPenalty > 0" class="col-span-2">
-        <span class="font-medium text-red-600">Vermeerdering wegens ontoereikende VA:</span>
-        <span class="ml-2 text-red-600 font-bold">
-          {{ calculationResults.prepaymentPenalty | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
-        </span>
-      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Commit Confirmation Modal -->
+<div *ngIf="showCommitDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Save Data</h3>
+    <p class="text-gray-600 mb-6">
+      Are you sure you want to save the current data? This will commit all your changes.
+    </p>
+    <div class="flex justify-end space-x-3">
+      <button 
+        class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+        (click)="handleCommitDialogResult(false)">
+        Cancel
+      </button>
+      <button 
+        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+        (click)="handleCommitDialogResult(true)">
+        Save
+      </button>
     </div>
   </div>
 </div>

@@ -31,6 +31,8 @@ export interface Prepayments {
 }
 
 export type PrepaymentStrategy = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
+export type PrepaymentCalculationGoal = 'GeenVermeerdering' | 'SaldoNul';
+export type PrepaymentConcentration = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
 
 export interface CalculationRow {
   code: string;
@@ -95,7 +97,11 @@ export interface TaxData {
   declarationSections: DeclarationSection[];
   inputMethod: 'manual' | 'previous' | 'upload';
   prepayments: Prepayments;
+  committedPrepayments: Prepayments;
   prepaymentStrategy: PrepaymentStrategy;
+  prepaymentCalculationGoal: PrepaymentCalculationGoal;
+  prepaymentConcentration: PrepaymentConcentration;
+  useSuggestedPrepayments: boolean;
   canUseReducedRate: boolean;
   isSmallCompanyFirstThreeYears: boolean;
   lastUpdated: Date;
@@ -133,14 +139,109 @@ export class TaxDataService {
 
   private performCalculation(data: TaxData): void {
     this.isLoadingSubject.next(true);
-    
+
+    let dataForCalculation = data;
+
+    // If the goal is to use a calculated suggestion, we must first run a preliminary calculation
+    // to get the inputs needed for the suggestion logic (like `saldo2` and `finalTaxPayable`).
+    if (data.useSuggestedPrepayments) {
+        const prelimResults = this.calculateTaxResults(data);
+        const taxIncreaseBase = prelimResults.voorheffingenRows.find(r => r.description === 'Saldo 2')?.result ?? 0;
+        
+        const suggestedPrepayments = this._calculateSuggestedPrepayments(
+            data.prepaymentCalculationGoal,
+            taxIncreaseBase,
+            prelimResults.finalTaxPayable,
+            data.isSmallCompanyFirstThreeYears,
+            data.prepaymentConcentration
+        );
+        
+        dataForCalculation = {
+            ...data,
+            prepayments: suggestedPrepayments
+        };
+    }
+
     try {
-      const results = this.calculateTaxResults(data);
+      const results = this.calculateTaxResults(dataForCalculation);
       this.resultsSubject.next(results);
     } catch (error) {
       console.error('Calculation error:', error);
     } finally {
       this.isLoadingSubject.next(false);
+    }
+  }
+
+  private _calculateSuggestedPrepayments(
+    goal: PrepaymentCalculationGoal,
+    taxIncreaseBase: number,
+    finalTaxPayable: number,
+    isSmallCompany: boolean,
+    concentration: PrepaymentConcentration = 'spread'
+  ): Prepayments {
+    // If it's a small company in first 3 years, no increase is due, so no prepayments are needed to avoid it.
+    if (goal === 'GeenVermeerdering' && isSmallCompany) {
+        return { va1: 0, va2: 0, va3: 0, va4: 0 };
+    }
+
+    function clampPrepayments(p: Prepayments): Prepayments {
+      return {
+        va1: Math.max(0, p.va1),
+        va2: Math.max(0, p.va2),
+        va3: Math.max(0, p.va3),
+        va4: Math.max(0, p.va4),
+      };
+    }
+
+    switch (goal) {
+        case 'GeenVermeerdering': {
+            // The vermeerdering is calculated as 9% of Saldo 2
+            const baseVermeerdering = Math.max(0, taxIncreaseBase * 0.09);
+            
+            // Calculate how much prepayment is needed to offset the vermeerdering
+            // Based on the concentration strategy
+            switch (concentration) {
+                case 'q1':
+                    // All in Q1: P * 12% = baseVermeerdering => P = baseVermeerdering / 0.12
+                    return clampPrepayments({ va1: baseVermeerdering / 0.12, va2: 0, va3: 0, va4: 0 });
+                case 'q2':
+                    // All in Q2: P * 10% = baseVermeerdering => P = baseVermeerdering / 0.10
+                    return clampPrepayments({ va1: 0, va2: baseVermeerdering / 0.10, va3: 0, va4: 0 });
+                case 'q3':
+                    // All in Q3: P * 8% = baseVermeerdering => P = baseVermeerdering / 0.08
+                    return clampPrepayments({ va1: 0, va2: 0, va3: baseVermeerdering / 0.08, va4: 0 });
+                case 'q4':
+                    // All in Q4: P * 6% = baseVermeerdering => P = baseVermeerdering / 0.06
+                    return clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: baseVermeerdering / 0.06 });
+                case 'spread':
+                default:
+                    // Spread equally: 4*P*0.09 = baseVermeerdering => P = baseVermeerdering / 0.36
+                    const p = baseVermeerdering / 0.36;
+                    return clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+            }
+        }
+
+        case 'SaldoNul': {
+            // To get a final balance of zero, the total prepayments must equal the final tax payable.
+            // Apply the concentration strategy
+            switch (concentration) {
+                case 'q1':
+                    return clampPrepayments({ va1: finalTaxPayable, va2: 0, va3: 0, va4: 0 });
+                case 'q2':
+                    return clampPrepayments({ va1: 0, va2: finalTaxPayable, va3: 0, va4: 0 });
+                case 'q3':
+                    return clampPrepayments({ va1: 0, va2: 0, va3: finalTaxPayable, va4: 0 });
+                case 'q4':
+                    return clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: finalTaxPayable });
+                case 'spread':
+                default:
+                    const p = finalTaxPayable / 4;
+                    return clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+            }
+        }
+        
+        default:
+            return { va1: 0, va2: 0, va3: 0, va4: 0 };
     }
   }
 
@@ -517,6 +618,7 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
   }
 
   private getDefaultData(): TaxData {
+    const defaultPrepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
     return {
       declarationSections: [
         {
@@ -618,8 +720,12 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
         },
       ],
       inputMethod: 'manual',
-      prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 },
+      prepayments: { ...defaultPrepayments },
+      committedPrepayments: { ...defaultPrepayments },
       prepaymentStrategy: 'spread',
+      prepaymentCalculationGoal: 'GeenVermeerdering',
+      prepaymentConcentration: 'spread',
+      useSuggestedPrepayments: false,
       canUseReducedRate: false,
       isSmallCompanyFirstThreeYears: false,
       lastUpdated: new Date()
@@ -632,23 +738,31 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
         const stored = localStorage.getItem(this.STORAGE_KEY);
         if (stored) {
           const data = JSON.parse(stored);
-          // Convert string date back to Date object
           data.lastUpdated = new Date(data.lastUpdated);
+          if (data.prepaymentCalculationGoal === undefined) {
+            data.prepaymentCalculationGoal = 'GeenVermeerdering';
+          }
+          if (data.useSuggestedPrepayments === undefined) {
+            data.useSuggestedPrepayments = false;
+          }
+          if (data.prepaymentConcentration === undefined) {
+            data.prepaymentConcentration = 'spread';
+          }
+          if (data.committedPrepayments === undefined) {
+            data.committedPrepayments = { ...data.prepayments };
+          }
           this.dataSubject.next(data);
         } else {
-          // No stored data, use defaults
           const defaultData = this.getDefaultData();
           this.saveData(defaultData);
           this.dataSubject.next(defaultData);
         }
       } else {
-        // No localStorage available (SSR), use defaults
         const defaultData = this.getDefaultData();
         this.dataSubject.next(defaultData);
       }
     } catch (error) {
       console.error('Error loading tax data:', error);
-      // Fallback to defaults
       const defaultData = this.getDefaultData();
       this.saveData(defaultData);
       this.dataSubject.next(defaultData);
@@ -735,12 +849,41 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
     }
   }
 
-  public updatePrepayments(prepayments: Prepayments): void {
+  public updatePrepayments(prepayments: Prepayments, useSuggested: boolean = false): void {
     const currentData = this.getData();
     if (currentData) {
       const updatedData: TaxData = {
         ...currentData,
         prepayments: prepayments,
+        useSuggestedPrepayments: useSuggested,
+        lastUpdated: new Date()
+      };
+      this.saveData(updatedData);
+      this.dataSubject.next(updatedData);
+    }
+  }
+  
+  public updatePrepaymentCalculationGoal(goal: PrepaymentCalculationGoal): void {
+    const currentData = this.getData();
+    if (currentData) {
+      const updatedData: TaxData = {
+        ...currentData,
+        prepaymentCalculationGoal: goal,
+        useSuggestedPrepayments: true, // When goal changes, always use suggestions
+        lastUpdated: new Date()
+      };
+      this.saveData(updatedData);
+      this.dataSubject.next(updatedData);
+    }
+  }
+  
+  public updatePrepaymentConcentration(concentration: PrepaymentConcentration): void {
+    const currentData = this.getData();
+    if (currentData) {
+      const updatedData: TaxData = {
+        ...currentData,
+        prepaymentConcentration: concentration,
+        useSuggestedPrepayments: true, // When concentration changes, always use suggestions
         lastUpdated: new Date()
       };
       this.saveData(updatedData);
@@ -806,4 +949,22 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
       return false;
     }
   }
-} 
+
+  public commitPrepayments(): void {
+    const currentData = this.getData();
+    if (currentData) {
+      const updatedData: TaxData = {
+        ...currentData,
+        committedPrepayments: { ...currentData.prepayments },
+        lastUpdated: new Date()
+      };
+      this.saveData(updatedData);
+      this.dataSubject.next(updatedData);
+    }
+  }
+
+  public getCommittedPrepayments(): Prepayments {
+    const currentData = this.getData();
+    return currentData?.committedPrepayments || { va1: 0, va2: 0, va3: 0, va4: 0 };
+  }
+}
