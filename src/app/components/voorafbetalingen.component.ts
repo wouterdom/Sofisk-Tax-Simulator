@@ -15,81 +15,73 @@ export interface VoorafbetalingenData {
   standalone: true,
   imports: [CurrencyPipe, FormsModule, FormattedNumberInputComponent],
   template: `
-    <div class="bg-white border rounded-xl shadow-sm p-6">
-      <div class="flex items-center justify-between mb-4 cursor-pointer" (click)="toggleExpanded()">
-        <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
-        <button type="button" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-5 h-5 transform transition-transform" [class.rotate-180]="!isExpanded" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </button>
-      </div>
-      
-      @if (isExpanded) {
-        <div class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                {{ readonly ? 'Origineel' : 'Voorafbetaling 1' }} (1811)
-              </label>
-              <app-formatted-number-input 
-                [fieldName]="'1811'" 
-                [placeholder]="'0,00'" 
-                [(ngModel)]="data.va1" 
-                [disabled]="readonly"
-                (valueChange)="onVoorafbetalingChange('va1', $event)">
-              </app-formatted-number-input>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                {{ readonly ? 'Origineel' : 'Voorafbetaling 3' }} (1813)
-              </label>
-              <app-formatted-number-input 
-                [fieldName]="'1813'" 
-                [placeholder]="'0,00'" 
-                [(ngModel)]="data.va3" 
-                [disabled]="readonly"
-                (valueChange)="onVoorafbetalingChange('va3', $event)">
-              </app-formatted-number-input>
-            </div>
+    <!-- Header with title, total, and collapse icon -->
+    <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50 p-2" (click)="toggleExpanded()">
+      <h4 class="font-medium text-gray-900">{{ title }}</h4>
+      <span class="text-sm font-medium flex items-center">
+        <span class="mr-2">{{ getTotalVoorafbetalingen() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+        @if (!isExpanded) {
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
+        }
+        @if (isExpanded) {
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
+        }
+      </span>
+    </div>
+    
+    @if (isExpanded) {
+      <div>
+        <div class="space-y-2 bg-teal-50 p-4 rounded">
+          <div class="flex items-center mb-2">
+            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 1' }}</span>
+            <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1811</span>
+            <app-formatted-number-input 
+              [fieldName]="'1811'" 
+              [placeholder]="'0,00'" 
+              [(ngModel)]="data.va1" 
+              [disabled]="readonly"
+              (valueChange)="onVoorafbetalingChange('va1', $event)">
+            </app-formatted-number-input>
           </div>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                {{ readonly ? 'Origineel' : 'Voorafbetaling 2' }} (1812)
-              </label>
-              <app-formatted-number-input 
-                [fieldName]="'1812'" 
-                [placeholder]="'0,00'" 
-                [(ngModel)]="data.va2" 
-                [disabled]="readonly"
-                (valueChange)="onVoorafbetalingChange('va2', $event)">
-              </app-formatted-number-input>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                {{ readonly ? 'Origineel' : 'Voorafbetaling 4' }} (1814)
-              </label>
-              <app-formatted-number-input 
-                [fieldName]="'1814'" 
-                [placeholder]="'0,00'" 
-                [(ngModel)]="data.va4" 
-                [disabled]="readonly"
-                (valueChange)="onVoorafbetalingChange('va4', $event)">
-              </app-formatted-number-input>
-            </div>
+          <div class="flex items-center mb-2">
+            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 2' }}</span>
+            <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1812</span>
+            <app-formatted-number-input 
+              [fieldName]="'1812'" 
+              [placeholder]="'0,00'" 
+              [(ngModel)]="data.va2" 
+              [disabled]="readonly"
+              (valueChange)="onVoorafbetalingChange('va2', $event)">
+            </app-formatted-number-input>
           </div>
           
-          <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-            <span class="text-sm font-medium text-gray-700">Totaal Voorafbetalingen:</span>
-            <span class="text-lg font-bold text-teal-600">{{ getTotalVoorafbetalingen() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+          <div class="flex items-center mb-2">
+            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 3' }}</span>
+            <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1813</span>
+            <app-formatted-number-input 
+              [fieldName]="'1813'" 
+              [placeholder]="'0,00'" 
+              [(ngModel)]="data.va3" 
+              [disabled]="readonly"
+              (valueChange)="onVoorafbetalingChange('va3', $event)">
+            </app-formatted-number-input>
+          </div>
+          
+          <div class="flex items-center mb-2">
+            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 4' }}</span>
+            <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1814</span>
+            <app-formatted-number-input 
+              [fieldName]="'1814'" 
+              [placeholder]="'0,00'" 
+              [(ngModel)]="data.va4" 
+              [disabled]="readonly"
+              (valueChange)="onVoorafbetalingChange('va4', $event)">
+            </app-formatted-number-input>
           </div>
         </div>
-      }
-    </div>
+      </div>
+    }
   `
 })
 export class VoorafbetalingenComponent implements OnInit {
