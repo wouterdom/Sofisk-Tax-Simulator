@@ -16,7 +16,7 @@
           </span>
         </div>
 
-        <!-- Step 2: Belastingverplichtingen bepalen -->
+        <!-- Step 2: Vereenvoudigde aangifte invullen -->
         <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(2)">
           <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
                [ngClass]="currentStep === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
@@ -24,11 +24,11 @@
           </div>
           <span class="text-sm font-medium transition-colors"
                 [ngClass]="currentStep === 2 ? 'text-blue-600' : 'text-gray-500'">
-            Belastingverplichtingen bepalen
+            Vereenvoudigde aangifte invullen
           </span>
         </div>
 
-        <!-- Step 3: Voorschotten optimaliseren -->
+        <!-- Step 3: Voorafbetalingen optimaliseren -->
         <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(3)">
           <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
                [ngClass]="currentStep === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
@@ -36,7 +36,7 @@
           </div>
           <span class="text-sm font-medium transition-colors"
                 [ngClass]="currentStep === 3 ? 'text-blue-600' : 'text-gray-500'">
-            Voorschotten optimaliseren
+            Voorafbetalingen optimaliseren
           </span>
         </div>
       </div>
@@ -105,12 +105,12 @@
     </div>
   }
 
-  <!-- Step 2: Belastingverplichtingen bepalen -->
+  <!-- Step 2: Vereenvoudigde aangifte invullen -->
   @if (currentStep === 2) {
     <app-vereenvoudigde-aangifte [inputMethod]="inputMethod"></app-vereenvoudigde-aangifte>
   }
 
-  <!-- Step 3: Voorschotten optimaliseren -->
+  <!-- Step 3: Voorafbetalingen optimaliseren -->
   @if (currentStep === 3) {
     <app-voorschotten-optimaliseren></app-voorschotten-optimaliseren>
   }

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, TaxData } from '../services/tax-data.service';
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
@@ -18,6 +18,10 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   public prepayments: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
   public calculationGoal: PrepaymentCalculationGoal = 'GeenVermeerdering';
   public prepaymentConcentration: PrepaymentConcentration = 'spread';
+
+  constructor(private cdr: ChangeDetectorRef) {
+    super();
+  }
   
 
 
@@ -50,16 +54,18 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
 
   protected override handleResultsChange(results: any): void {
     if (results) {
-      // Always update prepayments from results if we're using suggested prepayments
-      // OR if we have a calculation goal that requires suggested prepayments (SaldoNul)
+      console.log('Results changed, suggested prepayments:', results.suggestedPrepayments);
+      // Always update prepayments from results when we have suggested prepayments
       const currentData = this.taxDataService.getData();
-      if (currentData?.useSuggestedPrepayments || this.calculationGoal === 'SaldoNul') {
-        if (results.suggestedPrepayments) {
-          this.prepayments = { ...results.suggestedPrepayments };
-          // Also update the service to ensure the calculation uses these values
-          this.taxDataService.updatePrepayments(this.prepayments, false);
-          this.checkIfModified();
-        }
+      console.log('Current data useSuggestedPrepayments:', currentData?.useSuggestedPrepayments);
+      if (currentData?.useSuggestedPrepayments && results.suggestedPrepayments) {
+        console.log('Updating prepayments to:', results.suggestedPrepayments);
+        this.prepayments = { ...results.suggestedPrepayments };
+        // Also update the service to ensure the calculation uses these values
+        this.taxDataService.updatePrepayments(this.prepayments, false);
+        this.checkIfModified();
+        // Force change detection to update the UI immediately
+        this.cdr.detectChanges();
       }
     }
   }
@@ -71,7 +77,14 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
    * This tells the service to start using a calculation strategy.
    */
   public handleCalculationGoalChange(): void {
+    console.log('Calculation goal changed to:', this.calculationGoal);
     this.taxDataService.updatePrepaymentCalculationGoal(this.calculationGoal);
+    // Force change detection to ensure UI updates immediately
+    this.cdr.detectChanges();
+    // Also trigger another change detection after a short delay to ensure async updates are reflected
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 100);
     // The service will automatically set useSuggestedPrepayments to true
     // and trigger a recalculation, which will update the results
     // The handleResultsChange method will then apply the suggested prepayments
@@ -81,7 +94,14 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
    * Handles changes from the concentration options.
    */
   public handleConcentrationChange(): void {
+    console.log('Concentration changed to:', this.prepaymentConcentration);
     this.taxDataService.updatePrepaymentConcentration(this.prepaymentConcentration);
+    // Force change detection to ensure UI updates immediately
+    this.cdr.detectChanges();
+    // Also trigger another change detection after a short delay to ensure async updates are reflected
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 100);
     // The service will automatically set useSuggestedPrepayments to true
     // and trigger a recalculation, which will update the results
     // The handleResultsChange method will then apply the suggested prepayments
@@ -127,6 +147,9 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
 
   public revertSimulationToCommitted(): void {
     this.prepayments = this.taxDataService.getCommittedPrepayments();
+    // Also update the service to ensure calculation results are reset
+    this.taxDataService.updatePrepayments(this.prepayments, false);
+    this.checkIfModified();
   }
 
   public confirmAndCommitIfNeeded(callback?: (commit: boolean) => void): boolean {

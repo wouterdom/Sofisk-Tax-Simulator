@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DeclarationSection } from '../services/tax-data.service';
@@ -24,6 +24,10 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
   @Output() inputMethodChange = new EventEmitter<'manual' | 'previous' | 'upload'>();
 
   declarationSections: DeclarationSection[] = [];
+
+  constructor(private cdr: ChangeDetectorRef) {
+    super();
+  }
   
   // Checkbox states for tax rate eligibility
   canUseReducedRate = false; // Code 1701
@@ -51,11 +55,14 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
   }
 
   onFieldValueChange(field: any, value: number): void {
+    console.log('Field value changed:', field.label, 'to:', value);
     field.value = value;
     this.calculate();
+    // Don't force change detection during typing to avoid interference
   }
 
   calculate(): void {
+    console.log('Calculating with sections:', this.declarationSections);
     // Calculate totals for each section
     this.declarationSections.forEach((section, index) => {
       if (section.total) {
@@ -94,7 +101,7 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
       subtotalSection1460.subtotal.value = code1460BeforeConstraint + code1420;
     }
 
-    // Save updated data to service
+    // Save updated data to service immediately
     this.taxDataService.updateDeclarationSections(this.declarationSections);
   }
 

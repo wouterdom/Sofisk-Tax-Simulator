@@ -142,9 +142,9 @@ import { LoadingIndicatorComponent } from './loading-indicator.component';
                    }
                                      <!-- Totaal aftrek VA row -->
                    @if (hasTotaalAftrekVA()) {
-                     <tr>
-                       <td colspan="4" class="px-3 py-2 font-bold text-right border-t">Totaal aftrek voorafbetalingen (VA)</td>
-                       <td class="px-3 py-2 font-bold text-right text-red-600 border-t">{{ getTotaalAftrekVA() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
+                     <tr class="bg-teal-50 border-t-2">
+                       <td colspan="4" class="px-3 py-2 font-bold text-right">Totaal aftrek voorafbetalingen (VA)</td>
+                       <td class="px-3 py-2 font-bold text-right">{{ getTotaalAftrekVA() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
                      </tr>
                    }
                 </tbody>
@@ -152,20 +152,20 @@ import { LoadingIndicatorComponent } from './loading-indicator.component';
             </div>
                          <!-- Blue box for detailed calculation -->
              @if (hasVermeerderingDetails()) {
-               <div class="mt-4 p-4 rounded bg-blue-50 border border-blue-200">
-                <div class="flex items-center mb-2 font-semibold text-blue-900">
-                  <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01"/><circle cx="12" cy="12" r="10"/></svg>
+               <div class="mt-4 p-4 rounded-lg bg-teal-50 border border-teal-200 shadow-sm">
+                <div class="flex items-center mb-3 font-semibold text-gray-900">
+                  <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01"/><circle cx="12" cy="12" r="10"/></svg>
                   Berekening vermeerdering wegens ontoereikende voorafbetalingen
                 </div>
-                <div class="flex justify-between py-1">
-                  <span>Berekening vermeerdering</span>
-                  <span>{{ getBerekeningVermeerdering() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+                <div class="flex justify-between py-1 text-sm">
+                  <span class="text-gray-700">Berekening vermeerdering</span>
+                  <span class="font-medium">{{ getBerekeningVermeerdering() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
                 </div>
-                <div class="flex justify-between py-1">
-                  <span>Aftrek door voorafbetalingen</span>
-                  <span>{{ getAftrekDoorVoorafbetalingen() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+                <div class="flex justify-between py-1 text-sm">
+                  <span class="text-gray-700">Aftrek door voorafbetalingen</span>
+                  <span class="font-medium">{{ getAftrekDoorVoorafbetalingen() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
                 </div>
-                <div class="flex justify-between py-2 mt-2 border-t border-blue-200 font-bold text-blue-900">
+                <div class="flex justify-between py-2 mt-2 border-t border-teal-200 font-bold text-gray-900">
                   <span>Vermeerdering wegens ontoereikende voorafbetalingen</span>
                   <span>{{ getVermeerderingResult() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
                 </div>
@@ -173,17 +173,19 @@ import { LoadingIndicatorComponent } from './loading-indicator.component';
             }
                          <!-- Info box for de-minimis or code 1801 -->
              @if (calculationResults?.vermeerderingRows?.[0]?.code === '1801' || isDeMinimisRuleApplied()) {
-               <div class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 rounded">
-                <div class="font-semibold mb-1">
-                  <svg class="w-5 h-5 mr-2 text-yellow-400 inline-block align-text-bottom" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01"/><circle cx="12" cy="12" r="10"/></svg>
+               <div class="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200 shadow-sm">
+                <div class="flex items-center mb-2 font-semibold text-gray-900">
+                  <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01"/><circle cx="12" cy="12" r="10"/></svg>
                   Toegepaste maatregel:
                 </div>
-                @if (calculationResults?.vermeerderingRows?.[0]?.code === '1801') {
-                  <span class="font-bold">Kleine vennootschap:</span> Vermeerdering wordt niet toegepast omdat het een kleine vennootschap betreft in de eerste drie boekjaren (code 1801).
-                }
-                @if (isDeMinimisRuleApplied()) {
-                  <span class="font-bold">De-minimis regel:</span> Vermeerdering wordt niet toegepast omdat het berekende bedrag ({{ getVermeerderingBeforeDeMinimis() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}) kleiner is dan €50,00.
-                }
+                <div class="text-sm text-gray-700">
+                  @if (calculationResults?.vermeerderingRows?.[0]?.code === '1801') {
+                    <span class="font-bold">Kleine vennootschap:</span> Vermeerdering wordt niet toegepast omdat het een kleine vennootschap betreft in de eerste drie boekjaren (code 1801).
+                  }
+                  @if (isDeMinimisRuleApplied()) {
+                    <span class="font-bold">De-minimis regel:</span> Vermeerdering wordt niet toegepast omdat het berekende bedrag ({{ getVermeerderingBeforeDeMinimis() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}) kleiner is dan €50,00.
+                  }
+                </div>
               </div>
             }
           </div>

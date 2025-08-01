@@ -121,23 +121,32 @@ export class TaxDataService {
   public isLoading$ = this.isLoadingSubject.asObservable();
 
   constructor() {
+    console.log('TaxDataService constructor called');
     this.loadData();
     this.setupReactiveCalculations();
   }
 
   private setupReactiveCalculations(): void {
-    // Debounced calculation trigger
+    // Simplified calculation trigger for debugging
     this.data$.pipe(
-      debounceTime(300),
-      distinctUntilChanged((prev: TaxData | null, curr: TaxData | null) => JSON.stringify(prev) === JSON.stringify(curr))
+      debounceTime(100), // Shorter delay for testing
     ).subscribe(data => {
       if (data) {
+        console.log('Triggering calculation with data:', data);
         this.performCalculation(data);
       }
     });
+    
+    // Ensure initial calculation runs if data is already loaded
+    const currentData = this.getData();
+    if (currentData) {
+      console.log('Running initial calculation with current data:', currentData);
+      this.performCalculation(currentData);
+    }
   }
 
   private performCalculation(data: TaxData): void {
+    console.log('Performing calculation with data:', data);
     this.isLoadingSubject.next(true);
 
     let dataForCalculation = data;
@@ -167,6 +176,7 @@ export class TaxDataService {
 
     try {
       const results = this.calculateTaxResults(dataForCalculation);
+      console.log('Calculation results:', results);
       this.resultsSubject.next(results);
     } catch (error) {
       console.error('Calculation error:', error);
@@ -182,8 +192,10 @@ export class TaxDataService {
     isSmallCompany: boolean,
     concentration: PrepaymentConcentration = 'spread'
   ): Prepayments {
+    console.log('Calculating suggested prepayments:', { goal, taxIncreaseBase, separateAssessment, isSmallCompany, concentration });
     // If it's a small company in first 3 years, no increase is due, so no prepayments are needed to avoid it.
     if (goal === 'GeenVermeerdering' && isSmallCompany) {
+        console.log('Small company in first 3 years, returning zero prepayments');
         return { va1: 0, va2: 0, va3: 0, va4: 0 };
     }
 
@@ -200,6 +212,7 @@ export class TaxDataService {
         case 'GeenVermeerdering': {
             // The vermeerdering is calculated as 9% of Saldo 2
             const baseVermeerdering = Math.max(0, taxIncreaseBase * 0.09);
+            console.log('GeenVermeerdering case, baseVermeerdering:', baseVermeerdering, 'concentration:', concentration);
             
             // Calculate how much prepayment is needed to offset the vermeerdering
             // Based on the concentration strategy
@@ -220,7 +233,9 @@ export class TaxDataService {
                 default:
                     // Spread equally: 4*P*0.09 = baseVermeerdering => P = baseVermeerdering / 0.36
                     const p = baseVermeerdering / 0.36;
-                    return clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+                    const result = clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+                    console.log('Spread case result:', result);
+                    return result;
             }
         }
 
@@ -274,14 +289,17 @@ export class TaxDataService {
         }
         
         default:
+            console.log('Default case, returning zero prepayments');
             return { va1: 0, va2: 0, va3: 0, va4: 0 };
     }
   }
 
   private calculateTaxResults(data: TaxData): TaxCalculationResults {
+    console.log('calculateTaxResults called with data:', data);
     // Calculate section totals
     const section1Total = this.calculateSection1Total(data.declarationSections);
     const code1420 = this.getFieldValue(data.declarationSections, '1420') || 0;
+    console.log('Section 1 total:', section1Total, 'Code 1420:', code1420);
     const section4Total = this.calculateSection4Total(data.declarationSections); // Aftrekken van de resterende winst
     const section6Total = this.calculateSection6Total(data.declarationSections); // Aftrekken resterende winst - korfbeperking
     const section8Total = this.calculateSection8Total(data.declarationSections); // Afzonderlijk te belasten
@@ -679,9 +697,11 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
     for (const section of sections) {
       const field = section.fields.find(f => f.code === code);
       if (field) {
+        console.log(`Found field ${code} with value:`, field.value);
         return field.value || 0;
       }
     }
+    console.log(`Field ${code} not found, returning 0`);
     return 0;
   }
 
@@ -819,14 +839,17 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
           if (data.committedPrepayments === undefined) {
             data.committedPrepayments = { ...data.prepayments };
           }
+          console.log('Loaded data from localStorage:', data);
           this.dataSubject.next(data);
         } else {
           const defaultData = this.getDefaultData();
+          console.log('No stored data, using defaults:', defaultData);
           this.saveData(defaultData);
           this.dataSubject.next(defaultData);
         }
       } else {
         const defaultData = this.getDefaultData();
+        console.log('No localStorage, using defaults:', defaultData);
         this.dataSubject.next(defaultData);
       }
     } catch (error) {
@@ -899,6 +922,7 @@ vermeerderingWegensOntoereikendeVoorafbetalingen: vermeerderingTotal
         declarationSections: sections,
         lastUpdated: new Date()
       };
+      console.log('Updating declaration sections:', sections);
       this.saveData(updatedData);
       this.dataSubject.next(updatedData);
     }

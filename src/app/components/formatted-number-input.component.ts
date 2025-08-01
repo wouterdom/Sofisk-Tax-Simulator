@@ -60,27 +60,33 @@ export class FormattedNumberInputComponent implements ControlValueAccessor {
     const target = event.target as HTMLInputElement;
     const value = target.value;
     
+    console.log('Input changed to:', value);
+    
+    // Don't format while typing - keep the raw input
     this.displayValue = value;
     this.formattedValueChange.emit(value);
     
     const numericValue = this.numberFormatting.parseNumberEU(value);
     this.numericValue = numericValue;
     
+    console.log('Parsed numeric value:', numericValue);
+    
     // Validate
     this.validateInput(value);
     
-    // Emit numeric value
+    // Emit numeric value immediately
     this.valueChange.emit(numericValue);
     this.onChange(numericValue);
     
-    // Force update
-    this.cdr.detectChanges();
+    // Don't force change detection during typing to avoid interference
   }
 
   onBlur(): void {
     this.isFocused = false;
     this.formatDisplayValue();
     this.onTouched();
+    // Force change detection only on blur to format the final value
+    this.cdr.detectChanges();
   }
 
   onFocus(): void {
@@ -115,7 +121,10 @@ export class FormattedNumberInputComponent implements ControlValueAccessor {
   // ControlValueAccessor implementation
   writeValue(value: number): void {
     this.numericValue = value || 0;
-    this.displayValue = this.numberFormatting.formatNumberEU(this.numericValue);
+    // Only format if not focused to avoid interference during typing
+    if (!this.isFocused) {
+      this.displayValue = this.numberFormatting.formatNumberEU(this.numericValue);
+    }
     // Ensure the component view is updated
     this.cdr.detectChanges();
   }
