@@ -47,115 +47,124 @@
 <!-- Step Content -->
 <div class="w-full px-4 sm:px-6 lg:px-8">
   <!-- Step 1: Select invoermethode -->
-  <div *ngIf="currentStep === 1" class="space-y-6">
-    <div class="bg-white border border-teal-200 rounded-lg p-6 max-w-4xl mx-auto">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
-             [ngClass]="inputMethod === 'manual' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
-             (click)="setInputMethod('manual')">
-          <div class="flex items-center space-x-3">
-            <span class="text-2xl">📄</span>
-            <div>
-              <h4 class="font-medium text-gray-900 text-sm">Handmatige invoer</h4>
-              <p class="text-xs text-gray-600">Voer bekende bedragen direct in</p>
+  @if (currentStep === 1) {
+    <div class="space-y-6">
+      <div class="bg-white border border-teal-200 rounded-lg p-6 max-w-4xl mx-auto">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+               [ngClass]="inputMethod === 'manual' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+               (click)="setInputMethod('manual')">
+            <div class="flex items-center space-x-3">
+              <span class="text-2xl">📄</span>
+              <div>
+                <h4 class="font-medium text-gray-900 text-sm">Handmatige invoer</h4>
+                <p class="text-xs text-gray-600">Voer bekende bedragen direct in</p>
+              </div>
+            </div>
+          </div>
+          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+               [ngClass]="inputMethod === 'previous' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+               (click)="setInputMethod('previous')">
+            <div class="flex items-center space-x-3">
+              <span class="text-2xl">🗂️</span>
+              <div>
+                <h4 class="font-medium text-gray-900 text-sm">Vorig jaar als basis</h4>
+                <p class="text-xs text-gray-600">Start met cijfers van vorige aangifte</p>
+              </div>
+            </div>
+          </div>
+          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+               [ngClass]="inputMethod === 'upload' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+               (click)="setInputMethod('upload')">
+            <div class="flex items-center space-x-3">
+              <span class="text-2xl">⬆️</span>
+              <div>
+                <h4 class="font-medium text-gray-900 text-sm">Voorlopige P&V</h4>
+                <p class="text-xs text-gray-600">Upload tussentijdse proef- en saldibalans</p>
+              </div>
             </div>
           </div>
         </div>
-        <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
-             [ngClass]="inputMethod === 'previous' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
-             (click)="setInputMethod('previous')">
-          <div class="flex items-center space-x-3">
-            <span class="text-2xl">🗂️</span>
-            <div>
-              <h4 class="font-medium text-gray-900 text-sm">Vorig jaar als basis</h4>
-              <p class="text-xs text-gray-600">Start met cijfers van vorige aangifte</p>
-            </div>
-          </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-xs text-blue-800">
+            @switch (inputMethod) {
+              @case ('manual') {
+                <strong>Handmatige invoer:</strong> Voer de verwachte bedragen direct in voor een snelle berekening. U kunt deze waarden op elk moment aanpassen.
+              }
+              @case ('previous') {
+                <strong>Vorig jaar als basis:</strong> De cijfers van vorig jaar worden overgenomen als basis. U kunt deze aanpassen om een accuratere inschatting te maken voor het huidige boekjaar.
+              }
+              @case ('upload') {
+                <strong>Extrapolatie:</strong> Resultaat voor 9 maanden geëxtrapoleerd naar 12 maanden = €90.000
+              }
+            }
+          </p>
         </div>
-        <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
-             [ngClass]="inputMethod === 'upload' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
-             (click)="setInputMethod('upload')">
-          <div class="flex items-center space-x-3">
-            <span class="text-2xl">⬆️</span>
-            <div>
-              <h4 class="font-medium text-gray-900 text-sm">Voorlopige P&V</h4>
-              <p class="text-xs text-gray-600">Upload tussentijdse proef- en saldibalans</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p class="text-xs text-blue-800">
-          <ng-container [ngSwitch]="inputMethod">
-            <ng-container *ngSwitchCase="'manual'">
-              <strong>Handmatige invoer:</strong> Voer de verwachte bedragen direct in voor een snelle berekening. U kunt deze waarden op elk moment aanpassen.
-            </ng-container>
-            <ng-container *ngSwitchCase="'previous'">
-              <strong>Vorig jaar als basis:</strong> De cijfers van vorig jaar worden overgenomen als basis. U kunt deze aanpassen om een accuratere inschatting te maken voor het huidige boekjaar.
-            </ng-container>
-            <ng-container *ngSwitchCase="'upload'">
-              <strong>Extrapolatie:</strong> Resultaat voor 9 maanden geëxtrapoleerd naar 12 maanden = €90.000
-            </ng-container>
-          </ng-container>
-        </p>
       </div>
     </div>
-  </div>
+  }
 
   <!-- Step 2: Belastingverplichtingen bepalen -->
-  <div *ngIf="currentStep === 2">
+  @if (currentStep === 2) {
     <app-vereenvoudigde-aangifte [inputMethod]="inputMethod"></app-vereenvoudigde-aangifte>
-  </div>
+  }
 
   <!-- Step 3: Voorschotten optimaliseren -->
-  <div *ngIf="currentStep === 3">
+  @if (currentStep === 3) {
     <app-voorschotten-optimaliseren></app-voorschotten-optimaliseren>
-  </div>
+  }
 
   <!-- Navigation Buttons -->
   <div class="flex justify-between items-center mt-8 pb-8">
-    <button 
-      *ngIf="currentStep > 1"
-      class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-      (click)="previousStep()">
-      Previous
-    </button>
-    <div *ngIf="currentStep === 1"></div>
+    @if (currentStep > 1) {
+      <button 
+        class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+        (click)="previousStep()">
+        Previous
+      </button>
+    }
+    @if (currentStep === 1) {
+      <div></div>
+    }
 
-    <button 
-      *ngIf="currentStep < 3"
-      class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      (click)="nextStep()">
-      Next
-    </button>
-    <button 
-      *ngIf="currentStep === 3"
-      class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-      (click)="commitData()">
-      Commit
-    </button>
+    @if (currentStep < 3) {
+      <button 
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        (click)="nextStep()">
+        Next
+      </button>
+    }
+    @if (currentStep === 3) {
+      <button 
+        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        (click)="commitData()">
+        Commit
+      </button>
+    }
   </div>
 </div>
 
 <!-- Save Dialog -->
-<div *ngIf="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Save Data</h3>
-    <p class="text-gray-600 mb-6">
-      Are you sure you want to save the current data? This will commit all your changes.
-    </p>
-    <div class="flex justify-end space-x-3">
-      <button 
-        class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-        (click)="cancelSave()">
-        Cancel
-      </button>
-      <button 
-        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-        (click)="saveData()">
-        Save
-      </button>
+@if (showSaveDialog) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Save Data</h3>
+      <p class="text-gray-600 mb-6">
+        Are you sure you want to save the current data? This will commit all your changes.
+      </p>
+      <div class="flex justify-end space-x-3">
+                 <button 
+           class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+           (click)="cancelSave()">
+           Cancel
+         </button>
+         <button 
+           class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+           (click)="saveData()">
+           Save
+         </button>
+      </div>
     </div>
   </div>
-</div> 
+} 

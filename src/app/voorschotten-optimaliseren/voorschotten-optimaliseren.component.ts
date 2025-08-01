@@ -1,25 +1,25 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgFor, CurrencyPipe, NgIf, NgClass, SlicePipe } from '@angular/common';
-import { TaxDataService, Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, TaxCalculationResults, TaxData } from '../services/tax-data.service';
-import { FormattedNumberInputComponent } from '../components/formatted-number-input.component';
-import { Subscription } from 'rxjs';
+import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, TaxData } from '../services/tax-data.service';
+import { CalculationDetailsComponent } from '../components/calculation-details.component';
+import { BaseTaxComponent } from '../components/base-tax.component';
+import { VoorafbetalingenComponent } from '../components/voorafbetalingen.component';
+import { UIClassDirective } from '../components/ui-classes.directive';
 
 @Component({
   selector: 'app-voorschotten-optimaliseren',
   standalone: true,
-  imports: [FormsModule, NgFor, CurrencyPipe, NgIf, NgClass, FormattedNumberInputComponent, SlicePipe],
+  imports: [FormsModule, CalculationDetailsComponent, VoorafbetalingenComponent, UIClassDirective],
   templateUrl: './voorschotten-optimaliseren.component.html',
   styleUrl: './voorschotten-optimaliseren.component.css'
 })
-export class VoorschottenOptimaliserenComponent implements OnInit, OnDestroy {
+export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   // --- Component State ---
   public prepayments: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
   public calculationGoal: PrepaymentCalculationGoal = 'GeenVermeerdering';
   public prepaymentConcentration: PrepaymentConcentration = 'spread';
   
-  public calculationResults: TaxCalculationResults | null = null;
-  public isLoading = false;
+
 
   // Expose object keys for type-safe iteration in the template
   public prepaymentKeys: (keyof Prepayments)[] = ['va1', 'va2', 'va3', 'va4'];
@@ -30,60 +30,38 @@ export class VoorschottenOptimaliserenComponent implements OnInit, OnDestroy {
   // Track if prepayments have been modified
   public hasModifiedPrepayments = false;
 
-  // --- Subscriptions ---
-  private dataSubscription?: Subscription;
-  private resultsSubscription?: Subscription;
-  private loadingSubscription?: Subscription;
-
   public showCommitDialog: boolean = false;
   private commitCallback: ((proceed: boolean) => void) | null = null;
 
-  constructor(public taxDataService: TaxDataService) {}
-
-  ngOnInit(): void {
+  protected override onInit(): void {
     // Always get the last committed values for the original column
     this.originalPrepayments = this.taxDataService.getCommittedPrepayments();
-    this.subscribeToData();
-    this.subscribeToResults();
-    this.subscribeToLoading();
   }
 
-  ngOnDestroy(): void {
-    this.dataSubscription?.unsubscribe();
-    this.resultsSubscription?.unsubscribe();
-    this.loadingSubscription?.unsubscribe();
+  protected override handleDataChange(data: TaxData | null): void {
+    if (data) {
+      // Update the simulation prepayments based on the current state.
+      // Always reflect the goal and concentration from the service.
+      this.calculationGoal = data.prepaymentCalculationGoal;
+      this.prepaymentConcentration = data.prepaymentConcentration;
+      this.checkIfModified();
+    }
   }
 
-  // --- Subscription Handlers ---
-  private subscribeToData(): void {
-    this.dataSubscription = this.taxDataService.data$.subscribe(data => {
-      if (data) {
-        // Update the simulation prepayments based on the current state.
-        // Always reflect the goal and concentration from the service.
-        this.calculationGoal = data.prepaymentCalculationGoal;
-        this.prepaymentConcentration = data.prepaymentConcentration;
-        this.checkIfModified();
-      }
-    });
-  }
-
-  private subscribeToResults(): void {
-    this.resultsSubscription = this.taxDataService.results$.subscribe(results => {
-      if (results) {
-        this.calculationResults = results;
-        // Only update prepayments from results if we're using suggested prepayments
-        const currentData = this.taxDataService.getData();
-        if (currentData?.useSuggestedPrepayments) {
+  protected override handleResultsChange(results: any): void {
+    if (results) {
+      // Always update prepayments from results if we're using suggested prepayments
+      // OR if we have a calculation goal that requires suggested prepayments (SaldoNul)
+      const currentData = this.taxDataService.getData();
+      if (currentData?.useSuggestedPrepayments || this.calculationGoal === 'SaldoNul') {
+        if (results.suggestedPrepayments) {
           this.prepayments = { ...results.suggestedPrepayments };
+          // Also update the service to ensure the calculation uses these values
+          this.taxDataService.updatePrepayments(this.prepayments, false);
+          this.checkIfModified();
         }
       }
-    });
-  }
-
-  private subscribeToLoading(): void {
-    this.loadingSubscription = this.taxDataService.isLoading$.subscribe(isLoading => {
-      this.isLoading = isLoading;
-    });
+    }
   }
 
   // --- Event Handlers for UI ---
@@ -94,6 +72,9 @@ export class VoorschottenOptimaliserenComponent implements OnInit, OnDestroy {
    */
   public handleCalculationGoalChange(): void {
     this.taxDataService.updatePrepaymentCalculationGoal(this.calculationGoal);
+    // The service will automatically set useSuggestedPrepayments to true
+    // and trigger a recalculation, which will update the results
+    // The handleResultsChange method will then apply the suggested prepayments
   }
   
   /**
@@ -101,18 +82,14 @@ export class VoorschottenOptimaliserenComponent implements OnInit, OnDestroy {
    */
   public handleConcentrationChange(): void {
     this.taxDataService.updatePrepaymentConcentration(this.prepaymentConcentration);
+    // The service will automatically set useSuggestedPrepayments to true
+    // and trigger a recalculation, which will update the results
+    // The handleResultsChange method will then apply the suggested prepayments
   }
 
-  /**
-   * Handles manual input into one of the prepayment fields (VA1-VA4).
-   * This tells the service to stop using suggestions and use these manual values instead.
-   */
-  public handlePrepaymentInputChange(): void {
-    // Update the service with the new manual values.
-    // The `false` flag indicates this is a manual override, not a suggestion.
-    this.taxDataService.updatePrepayments({ ...this.prepayments }, false);
-    
-    // Check if prepayments have been modified compared to original
+  public onPrepaymentsDataChange(newData: Prepayments): void {
+    this.prepayments = { ...newData };
+    this.taxDataService.updatePrepayments(this.prepayments, false);
     this.checkIfModified();
   }
   
@@ -192,4 +169,6 @@ export class VoorschottenOptimaliserenComponent implements OnInit, OnDestroy {
         row => row.description.startsWith(descriptionPrefix)
     );
   }
+
+
 }

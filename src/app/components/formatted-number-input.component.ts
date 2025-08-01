@@ -19,9 +19,11 @@ import { NumberFormattingService } from '../services/number-formatting.service';
         [placeholder]="placeholder"
         [disabled]="disabled"
       />
-      <div *ngIf="showError" class="absolute -bottom-5 left-0 text-xs text-red-600">
-        {{ errorMessage }}
-      </div>
+      @if (showError) {
+        <div class="absolute -bottom-5 left-0 text-xs text-red-600">
+          {{ errorMessage }}
+        </div>
+      }
     </div>
   `,
   providers: [

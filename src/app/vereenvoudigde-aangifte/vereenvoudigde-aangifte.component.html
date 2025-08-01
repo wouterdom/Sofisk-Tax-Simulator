@@ -4,7 +4,7 @@
   <!-- Left Column: Inputs -->
   <div class="w-full lg:w-2/3 space-y-6">
     <!-- Key Elements Checkboxes -->
-    <div class="bg-white border rounded-xl shadow-sm p-6">
+    <div [uiClass]="'card'">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">Key Elements</h3>
       <div class="space-y-2">
         <label class="flex items-center space-x-2 cursor-pointer group">
@@ -19,246 +19,91 @@
     </div>
     
     <!-- Vereenvoudigde Aangifte Sections -->
-    <div class="bg-white border rounded-xl shadow-sm p-6">
+    <div [uiClass]="'card'">
       <h3 class="text-xl font-bold text-gray-900 mb-6">Vereenvoudigde aangifte</h3>
       <div class="space-y-6">
-        <!-- Totale Voorafbetalingen (as a foldable section) -->
-        <div>
-          <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50 p-2" (click)="voorafbetalingenOpen = !voorafbetalingenOpen">
-            <h4 class="font-medium text-gray-900">Totale voorafbetalingen</h4>
-            <span class="text-sm font-medium flex items-center">
-              <span class="mr-2">{{ getTotalVoorafbetalingen() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-              <svg *ngIf="!voorafbetalingenOpen" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
-              <svg *ngIf="voorafbetalingenOpen" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
-            </span>
-          </div>
-          <div *ngIf="voorafbetalingenOpen">
-            <div class="space-y-4 bg-teal-50 p-4 rounded">
-              <div class="grid grid-cols-2 gap-4">
-                <div class="flex items-center">
-                  <span class="flex-1 text-gray-700">VA1</span>
-                  <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1811</span>
-                  <app-formatted-number-input [fieldName]="'1811'" [placeholder]="'0,00'" [(ngModel)]="voorafbetalingen.va1" (valueChange)="onVoorafbetalingChange('va1', $event)"></app-formatted-number-input>
-                </div>
-                <div class="flex items-center">
-                  <span class="flex-1 text-gray-700">VA3</span>
-                  <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1813</span>
-                  <app-formatted-number-input [fieldName]="'1813'" [placeholder]="'0,00'" [(ngModel)]="voorafbetalingen.va3" (valueChange)="onVoorafbetalingChange('va3', $event)"></app-formatted-number-input>
-                </div>
-                <div class="flex items-center">
-                  <span class="flex-1 text-gray-700">VA2</span>
-                  <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1812</span>
-                  <app-formatted-number-input [fieldName]="'1812'" [placeholder]="'0,00'" [(ngModel)]="voorafbetalingen.va2" (valueChange)="onVoorafbetalingChange('va2', $event)"></app-formatted-number-input>
-                </div>
-                <div class="flex items-center">
-                  <span class="flex-1 text-gray-700">VA4</span>
-                  <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1814</span>
-                  <app-formatted-number-input [fieldName]="'1814'" [placeholder]="'0,00'" [(ngModel)]="voorafbetalingen.va4" (valueChange)="onVoorafbetalingChange('va4', $event)"></app-formatted-number-input>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <app-voorafbetalingen
+          [data]="voorafbetalingen"
+          [isExpanded]="voorafbetalingenOpen"
+          (expandedChange)="voorafbetalingenOpen = $event"
+          (dataChange)="onVoorafbetalingenDataChange($event)"
+        ></app-voorafbetalingen>
 
-        <div *ngFor="let section of declarationSections" class="block">
-          <!-- Section with fields but no title (like code 1420) -->
-          <div *ngIf="!section.isFoldable && section.title === null && section.fields.length > 0" class="space-y-4 px-4">
-            <div *ngFor="let field of section.fields" class="flex items-center mb-2">
-              <span class="flex-1 text-gray-700">{{ field.label }}</span>
-              <span *ngIf="field.code" class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
-              <app-formatted-number-input [fieldName]="field.code || field.label" [placeholder]="'0,00'" [(ngModel)]="field.value" (valueChange)="onFieldValueChange(field, $event)"></app-formatted-number-input>
-            </div>
-          </div>
-          
-          <!-- Subtotal Section only (like code 1430) -->
-          <div *ngIf="section.subtotal && section.fields.length === 0" class="flex justify-between items-center py-3 mt-4 border-t border-gray-200">
-              <span class="text-base font-medium text-gray-900 underline text-left">{{ section.subtotal.label }}</span>
-              <span class="text-base font-medium text-gray-900 underline text-right">{{ section.subtotal.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-          </div>
-
-          <!-- Foldable Section -->
-          <div *ngIf="section.isFoldable">
-            <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50 p-2" (click)="section.isOpen = !section.isOpen">
-              <h4 class="font-medium text-gray-900">{{ section.title }}</h4>
-              <span class="text-sm font-medium flex items-center">
-                <span *ngIf="section.title === 'Aftrekken resterende winst - korfbeperking' && calculationResults" class="mr-2">{{ calculationResults.limitedSection4Total | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-                <span *ngIf="section.title !== 'Aftrekken resterende winst - korfbeperking' && section.total" class="mr-2">{{ section.total.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-                <svg *ngIf="!section.isOpen" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
-                <svg *ngIf="section.isOpen" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
-              </span>
-            </div>
-            <div *ngIf="section.isOpen">
-              <div class="space-y-2 bg-teal-50 p-4 rounded">
-                <div *ngFor="let field of section.fields" class="flex items-center mb-2">
-                  <span class="flex-1 text-gray-700">{{ field.label }}</span>
-                  <span *ngIf="field.code" class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
-                  <app-formatted-number-input [fieldName]="field.code || field.label" [placeholder]="'0,00'" [(ngModel)]="field.value" (valueChange)="onFieldValueChange(field, $event)"></app-formatted-number-input>
-                </div>
+        @for (section of declarationSections; track section) {
+          <div class="block">
+            <!-- Section with fields but no title (like code 1420) -->
+            @if (!section.isFoldable && section.title === null && section.fields.length > 0) {
+              <div class="space-y-4 px-4">
+                @for (field of section.fields; track field) {
+                  <div class="flex items-center mb-2">
+                    <span class="flex-1 text-gray-700">{{ field.label }}</span>
+                    @if (field.code) {
+                      <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
+                    }
+                    <app-formatted-number-input [fieldName]="field.code || field.label" [placeholder]="'0,00'" [(ngModel)]="field.value" (valueChange)="onFieldValueChange(field, $event)"></app-formatted-number-input>
+                  </div>
+                }
               </div>
-            </div>
+            }
+            
+            <!-- Subtotal Section only (like code 1430) -->
+            @if (section.subtotal && section.fields.length === 0) {
+              <div class="flex justify-between items-center py-3 mt-4 border-t border-gray-200">
+                  <span class="text-base font-medium text-gray-900 underline text-left">{{ section.subtotal.label }}</span>
+                  <span class="text-base font-medium text-gray-900 underline text-right">{{ section.subtotal.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+              </div>
+            }
+
+            <!-- Foldable Section -->
+            @if (section.isFoldable) {
+              <div>
+                <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50 p-2" (click)="section.isOpen = !section.isOpen">
+                  <h4 class="font-medium text-gray-900">{{ section.title }}</h4>
+                  <span class="text-sm font-medium flex items-center">
+                    @if (section.title === 'Aftrekken resterende winst - korfbeperking' && calculationResults) {
+                      <span class="mr-2">{{ calculationResults.limitedSection4Total | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+                    }
+                    @if (section.title !== 'Aftrekken resterende winst - korfbeperking' && section.total) {
+                      <span class="mr-2">{{ section.total.value | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+                    }
+                    @if (!section.isOpen) {
+                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
+                    }
+                    @if (section.isOpen) {
+                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/></svg>
+                    }
+                  </span>
+                </div>
+                @if (section.isOpen) {
+                  <div>
+                    <div class="space-y-2 bg-teal-50 p-4 rounded">
+                      @for (field of section.fields; track field) {
+                        <div class="flex items-center mb-2">
+                          <span class="flex-1 text-gray-700">{{ field.label }}</span>
+                          @if (field.code) {
+                            <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">{{ field.code }}</span>
+                          }
+                          <app-formatted-number-input [fieldName]="field.code || field.label" [placeholder]="'0,00'" [(ngModel)]="field.value" (valueChange)="onFieldValueChange(field, $event)"></app-formatted-number-input>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
-        </div>
+        }
       </div>
     </div>
   </div>
   
   <!-- Right Column: Calculation -->
   <div class="w-full lg:w-1/3 space-y-6">
-      <!-- Cards Section -->
-      <div class="bg-white border rounded-xl shadow-sm p-6">
-        <div *ngIf="!isLoading && calculationResults" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- Vermeerdering Card -->
-          <div class="p-4 rounded-lg text-white text-center" [ngClass]="{
-            'bg-gray-400': isSmallCompanyFirstThreeYears,
-            'bg-teal-400': !isSmallCompanyFirstThreeYears
-          }">
-            <div *ngIf="isSmallCompanyFirstThreeYears" class="text-lg font-bold">N/A</div>
-            <div *ngIf="!isSmallCompanyFirstThreeYears" class="text-2xl font-bold">
-              {{ calculationResults.vermeerderingWegensOntoereikendeVoorafbetalingen | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}
-            </div>
-            <div class="text-sm">Vermeerdering</div>
-            <div *ngIf="isSmallCompanyFirstThreeYears" class="text-xs mt-1">(Eerste 3 boekjaren)</div>
-          </div>
-
-          <!-- Te Betalen Card -->
-          <div class="p-4 bg-teal-400 rounded-lg text-white text-center">
-            <div class="text-2xl font-bold">{{ calculationResults.finalTaxDue | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</div>
-            <div class="text-sm">{{ getTaxCardTitle() }}</div>
-          </div>
-        </div>
-        
-        <div *ngIf="isLoading" class="flex items-center justify-center py-4">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span class="ml-2 text-blue-600">Berekenen...</span>
-        </div>
-      </div>
-      
-      <!-- Detailed Calculation Tables -->
-      <div class="bg-white border rounded-xl shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Detail van de berekening</h3>
-        <!-- Loading indicator -->
-        <div *ngIf="isLoading" class="flex items-center justify-center py-4">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span class="ml-2 text-blue-600">Berekenen...</span>
-        </div>
-
-        <!-- Results display -->
-        <div *ngIf="!isLoading" class="space-y-6">
-          <!-- Berekening section -->
-          <div class="border rounded mb-4">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr class="border-b bg-teal-50">
-                  <th class="px-3 py-2 text-left font-medium w-1/2">Berekening</th>
-                  <th class="px-3 py-2 text-center font-medium w-16">Code</th>
-                  <th class="px-3 py-2 text-right font-medium w-24">Bedrag</th>
-                  <th class="px-3 py-2 text-right font-medium w-20">Tarief</th>
-                  <th class="px-3 py-2 text-right font-medium w-24">Resultaat</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngIf="!calculationResults || !calculationResults.calculationRows || calculationResults.calculationRows.length === 0">
-                  <td colspan="5" class="px-3 py-4 text-center text-gray-500">Berekeningen worden geladen...</td>
-                </tr>
-                <tr *ngFor="let row of calculationResults?.calculationRows" class="border-b last:border-b-0 hover:bg-teal-50" [ngClass]="{'bg-teal-50': row.description === 'Saldo 1'}">
-                  <td class="px-3 py-2 text-sm">{{ row.description }}</td>
-                  <td class="px-3 py-2 text-center">{{ row.code }}</td>
-                  <td class="px-3 py-2 text-right">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                  <td class="px-3 py-2 text-right">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
-                  <td class="px-3 py-2 text-right font-medium">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                </tr>
-                <tr class="font-bold bg-teal-50 border-t-2" *ngIf="calculationResults">
-                  <td class="px-3 py-2" colspan="4">Saldo 1</td>
-                  <td class="px-3 py-2 text-right">{{ calculationResults.calculationTotal | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Verrekenbare voorheffingen section -->
-          <div class="mb-4">
-            <h4 class="text-md font-semibold text-gray-900 mb-2">Verrekenbare voorheffingen</h4>
-            <div class="border rounded">
-              <table class="min-w-full text-sm">
-                <tbody>
-                  <tr *ngIf="!calculationResults || !calculationResults.voorheffingenRows || calculationResults.voorheffingenRows.length === 0">
-                    <td colspan="5" class="px-3 py-4 text-center text-gray-500">Geen voorheffingen</td>
-                  </tr>
-                  <tr *ngFor="let row of calculationResults?.voorheffingenRows" [ngClass]="{'bg-teal-50': row.description === 'Saldo 2'}" class="border-b last:border-b-0 hover:bg-teal-50">
-                    <ng-container *ngIf="row.description !== 'Saldo 2'; else saldo2Row">
-                      <td class="px-3 py-2 text-sm w-1/2">{{ row.description }}</td>
-                      <td class="px-3 py-2 text-center w-16">{{ row.code }}</td>
-                      <td class="px-3 py-2 text-right w-24">&nbsp;</td>
-                      <td class="px-3 py-2 text-right w-20">&nbsp;</td>
-                      <td class="px-3 py-2 text-right font-medium w-24">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                    </ng-container>
-                    <ng-template #saldo2Row>
-                      <td class="px-3 py-2 font-bold" colspan="4">{{ row.description }}</td>
-                      <td class="px-3 py-2 text-right font-bold">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                    </ng-template>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Vermeerdering en Voorafbetalingen section -->
-          <div class="mb-4">
-            <h4 class="text-md font-semibold text-gray-900 mb-2">Vermeerdering en Voorafbetalingen</h4>
-            <div class="border rounded">
-              <table class="min-w-full text-sm">
-                <tbody>
-                  <tr *ngIf="!calculationResults || !calculationResults.vermeerderingRows || calculationResults.vermeerderingRows.length === 0">
-                    <td colspan="5" class="px-3 py-4 text-center text-gray-500">Geen vermeerdering berekening</td>
-                  </tr>
-                  <tr *ngFor="let row of calculationResults?.vermeerderingRows" 
-                      [ngClass]="(row.description === 'Berekening vermeerdering' && row.amount > 0) ? 'border-b last:border-b-0 hover:bg-teal-50 font-bold bg-teal-50' : 'border-b last:border-b-0 hover:bg-teal-50'">
-                    <td class="px-3 py-2 text-sm w-1/2" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.description }}</td>
-                    <td class="px-3 py-2 text-center w-16" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.code }}</td>
-                    <td class="px-3 py-2 text-right w-24" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                    <td class="px-3 py-2 text-right w-20" [class.font-bold]="row.description === 'Berekening vermeerdering' && row.amount > 0">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
-                    <td class="px-3 py-2 text-right w-24" [class]="row.description === 'Berekening vermeerdering' && row.amount > 0 ? 'font-bold' : 'font-medium'">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="flex justify-between items-center mt-3 p-3 border-t-2 border-gray-300 bg-teal-50 rounded-b text-lg font-bold text-gray-900">
-              <span class="font-bold">Vermeerdering wegens ontoereikende voorafbetalingen</span>
-              <span class="font-bold">{{ (calculationResults?.vermeerderingTotal || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-            </div>
-          </div>
-
-          <!-- Resultaat section -->
-          <div class="mb-4">
-            <h4 class="text-md font-semibold text-gray-900 mb-2">Resultaat</h4>
-            <div class="border rounded">
-              <table class="min-w-full text-sm">
-                <tbody>
-                  <tr *ngIf="!calculationResults || !calculationResults.resultRows || calculationResults.resultRows.length === 0">
-                    <td colspan="5" class="px-3 py-4 text-center text-gray-500">Geen resultaten</td>
-                  </tr>
-                  <ng-container *ngFor="let row of calculationResults?.resultRows; let i = index">
-                    <tr *ngIf="i < 3" [ngClass]="{'bg-teal-50': row.description === 'Saldo 2'}" class="border-b last:border-b-0 hover:bg-teal-50">
-                      <td class="px-3 py-2 text-sm w-1/2" [class.font-bold]="row.description === 'Saldo 2'">{{ row.description }}</td>
-                      <td colspan="4" class="px-3 py-2 text-right font-medium w-24" [class.font-bold]="row.description === 'Saldo 2'">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                    </tr>
-                    <tr *ngIf="i === 3" class="border-b last:border-b-0 hover:bg-teal-50">
-                      <td class="px-3 py-2 text-sm w-1/2">{{ row.description }}</td>
-                      <td class="px-3 py-2 text-center w-16">{{ row.code }}</td>
-                      <td class="px-3 py-2 text-right w-24">{{ row.amount | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                      <td class="px-3 py-2 text-right w-20">{{ row.rate !== null ? (row.rate | number:'1.2-2') + '%' : '' }}</td>
-                      <td class="px-3 py-2 text-right font-medium w-24">{{ row.result | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</td>
-                    </tr>
-                  </ng-container>
-                </tbody>
-              </table>
-            </div>
-            <div class="flex justify-between items-center mt-3 p-3 border-t-2 border-gray-300 bg-teal-50 rounded-b text-lg font-bold text-gray-900">
-              <span>{{ getTaxCardTitle() }}</span>
-              <span>{{ (calculationResults?.finalTaxPayable || 0) | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Shared Calculation Details Component -->
+      <app-calculation-details 
+        [calculationResults]="calculationResults"
+        [isLoading]="isLoading"
+        [isSmallCompanyFirstThreeYears]="isSmallCompanyFirstThreeYears">
+      </app-calculation-details>
   </div>
 </div>

@@ -148,13 +148,16 @@ export class TaxDataService {
         const prelimResults = this.calculateTaxResults(data);
         const taxIncreaseBase = prelimResults.voorheffingenRows.find(r => r.description === 'Saldo 2')?.result ?? 0;
         
-        const suggestedPrepayments = this._calculateSuggestedPrepayments(
-            data.prepaymentCalculationGoal,
-            taxIncreaseBase,
-            prelimResults.finalTaxPayable,
-            data.isSmallCompanyFirstThreeYears,
-            data.prepaymentConcentration
-        );
+                    // Separate assessment (code 1508) result row
+            const sepRow = prelimResults.resultRows.find(r => r.code === '1508');
+            const separateAssessment = sepRow ? sepRow.result : 0;
+            const suggestedPrepayments = this._calculateSuggestedPrepayments(
+              data.prepaymentCalculationGoal,
+              taxIncreaseBase,
+              separateAssessment,
+              data.isSmallCompanyFirstThreeYears,
+              data.prepaymentConcentration
+            );
         
         dataForCalculation = {
             ...data,
@@ -175,7 +178,7 @@ export class TaxDataService {
   private _calculateSuggestedPrepayments(
     goal: PrepaymentCalculationGoal,
     taxIncreaseBase: number,
-    finalTaxPayable: number,
+    separateAssessment: number,
     isSmallCompany: boolean,
     concentration: PrepaymentConcentration = 'spread'
   ): Prepayments {
@@ -222,21 +225,51 @@ export class TaxDataService {
         }
 
         case 'SaldoNul': {
-            // To get a final balance of zero, the total prepayments must equal the final tax payable.
-            // Apply the concentration strategy
+            // To get a final balance of zero, we need to solve:
+            // 0 = saldo2 - voorafbetalingenTotal + vermeerderingTotal + result1508
+            // Where vermeerderingTotal depends on the prepayments
+            
+            // Solve analytically depending on whether prepayment deduction already cancels vermeerdering
+            const saldo2 = taxIncreaseBase;
+            const result1508 = separateAssessment; // already 10% applied
+            const mBase = Math.max(0, saldo2 * 0.09);
+
+            function solvePrepayment(dRate: number): number {
+              // Case A: prepayment big enough so that P*dRate >= mBase
+              const thresh = (saldo2 + result1508);
+              if (thresh * dRate >= mBase) {
+                return thresh; // this satisfies case A
+              }
+              // Otherwise solve with vermeerdering remaining
+              return (saldo2 + result1508 + mBase) / (1 + dRate);
+            }
+
             switch (concentration) {
-                case 'q1':
-                    return clampPrepayments({ va1: finalTaxPayable, va2: 0, va3: 0, va4: 0 });
-                case 'q2':
-                    return clampPrepayments({ va1: 0, va2: finalTaxPayable, va3: 0, va4: 0 });
-                case 'q3':
-                    return clampPrepayments({ va1: 0, va2: 0, va3: finalTaxPayable, va4: 0 });
-                case 'q4':
-                    return clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: finalTaxPayable });
-                case 'spread':
-                default:
-                    const p = finalTaxPayable / 4;
-                    return clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+              case 'q1': {
+                const P = solvePrepayment(0.12);
+                return clampPrepayments({ va1: P, va2: 0, va3: 0, va4: 0 });
+              }
+              case 'q2': {
+                const P = solvePrepayment(0.10);
+                return clampPrepayments({ va1: 0, va2: P, va3: 0, va4: 0 });
+              }
+              case 'q3': {
+                const P = solvePrepayment(0.08);
+                return clampPrepayments({ va1: 0, va2: 0, va3: P, va4: 0 });
+              }
+              case 'q4': {
+                const P = solvePrepayment(0.06);
+                return clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: P });
+              }
+              case 'spread':
+              default: {
+                // spread equally among 4 quarters; deduction factor total 0.36 on total prepayment 4P
+                // effective deduction rate on total prepayment is 0.36/4 = 0.09 per quarter but easier treat total
+                const dRateTotal = 0.36; // on total prepayment T
+                const T = solvePrepayment(dRateTotal);
+                const P = T / 4;
+                return clampPrepayments({ va1: P, va2: P, va3: P, va4: P });
+              }
             }
         }
         
@@ -356,53 +389,88 @@ export class TaxDataService {
         result: 0
       });
     } else {
-      // Calculate the raw vermeerdering amount
+      // Calculate the raw vermeerdering amount (always show this)
       const rawVermeerdering = Math.max(0, saldo2 * 0.09);
+      // Prepayment deductions
+      const va1 = data.prepayments.va1;
+      const va2 = data.prepayments.va2;
+      const va3 = data.prepayments.va3;
+      const va4 = data.prepayments.va4;
+      const deduction1 = -(va1 * 0.12);
+      const deduction2 = -(va2 * 0.10);
+      const deduction3 = -(va3 * 0.08);
+      const deduction4 = -(va4 * 0.06);
+      const totalAftrekVA = deduction1 + deduction2 + deduction3 + deduction4;
       
-      // Apply de-minimis rule to the vermeerdering
-      const adjustedVermeerdering = this.applyDeMinimisRule(rawVermeerdering, saldo2);
+      // Calculate the final vermeerdering before de-minimis rule
+      const vermeerderingBeforeDeMinimis = Math.max(0, rawVermeerdering + totalAftrekVA);
+      // Apply de-minimis rule to the final result
+      const finalVermeerdering = this.applyDeMinimisRule(vermeerderingBeforeDeMinimis, saldo2);
       
+      // Always show the raw vermeerdering calculation
       vermeerderingRows = [
         {
           code: '',
-          description: 'Berekening vermeerdering' + (adjustedVermeerdering === 0 ? ' (de-minimis regel)' : ''),
+          description: 'Berekening vermeerdering',
           amount: saldo2,
           rate: 9.00,
-          result: adjustedVermeerdering
+          result: rawVermeerdering
         },
         {
           code: '1811',
           description: 'Voorafbetaling 1',
-          amount: data.prepayments.va1,
+          amount: va1,
           rate: 12.00,
-          result: -(data.prepayments.va1 * 0.12)
+          result: deduction1
         },
         {
           code: '1812',
           description: 'Voorafbetaling 2',
-          amount: data.prepayments.va2,
+          amount: va2,
           rate: 10.00,
-          result: -(data.prepayments.va2 * 0.10)
+          result: deduction2
         },
         {
           code: '1813',
           description: 'Voorafbetaling 3',
-          amount: data.prepayments.va3,
+          amount: va3,
           rate: 8.00,
-          result: -(data.prepayments.va3 * 0.08)
+          result: deduction3
         },
         {
           code: '1814',
           description: 'Voorafbetaling 4',
-          amount: data.prepayments.va4,
+          amount: va4,
           rate: 6.00,
-          result: -(data.prepayments.va4 * 0.06)
+          result: deduction4
+        },
+        // New: Totaal aftrek VA row
+        {
+          code: '',
+          description: 'Totaal aftrek VA',
+          amount: 0,
+          rate: null,
+          result: totalAftrekVA
+        },
+        // New: Aftrek door VA row (same as above, for clarity)
+        {
+          code: '',
+          description: 'Aftrek door VA',
+          amount: 0,
+          rate: null,
+          result: totalAftrekVA
+        },
+        // New: Berekening vermeerdering after prepayments (before de-minimis)
+        {
+          code: '',
+          description: 'Berekening vermeerdering',
+          amount: 0,
+          rate: null,
+          result: vermeerderingBeforeDeMinimis
         }
       ];
-      
-      // Calculate total with de-minimis rule applied
-      const prepaymentDeductions = -(data.prepayments.va1 * 0.12) - (data.prepayments.va2 * 0.10) - (data.prepayments.va3 * 0.08) - (data.prepayments.va4 * 0.06);
-      vermeerderingTotal = Math.max(0, adjustedVermeerdering + prepaymentDeductions);
+      // Use final vermeerdering with de-minimis rule applied
+      vermeerderingTotal = finalVermeerdering;
     }
      
     // Calculate total taxes payable: Saldo 2 - Voorafbetalingen + Vermeerdering + Code 1508

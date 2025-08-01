@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { NgIf, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { TaxDataService } from '../services/tax-data.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
-  imports: [NgIf, DatePipe],
+  imports: [DatePipe],
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
