@@ -1,19 +1,24 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { PrepaymentCalculationGoal } from '../tax-data.types';
-import { getDefaultTaxData } from '../layout-structuur/Vereenvoudigde-aangifte';
-import { buildCalculationDetail } from '../layout-structuur/calculation-detail.builder';
-import { buildSimplifiedReturn } from '../layout-structuur/Key-values-Cards';
-import { runCoreEngine, CoreEngineInput } from './calculation-core';
-import { TAX_CONSTANTS } from '../tax-constants';
+import { PrepaymentCalculationGoal } from '../types/tax-data.types';
+import { getDefaultTaxData } from '../../layout-builders/Vereenvoudigde-aangifte';
+import { buildCalculationDetail } from '../../layout-builders/calculation-detail.builder';
+import { buildSimplifiedReturn } from '../../layout-builders/Key-values-Cards';
+import { runCoreEngine, CoreEngineInput, CoreEngineOutput } from './calculation-core';
+import { TAX_CONSTANTS } from './parameters';
 import { 
   DeclarationSection, 
   Prepayments, 
   PrepaymentConcentration,
   TaxCalculationResults,
   TaxData
-} from '../tax-data.types';
+} from '../types/tax-data.types';
 import { PrepaymentService } from './prepayment.service';
+
+// Re-export core engine functions and types for external use
+export { runCoreEngine } from './calculation-core';
+export type { CoreEngineInput, CoreEngineOutput } from './calculation-core';
+export { PrepaymentService } from './prepayment.service';
 
 /**
  * Main calculation engine service for tax calculations.

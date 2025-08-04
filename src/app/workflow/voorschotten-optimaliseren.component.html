@@ -96,19 +96,19 @@
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <app-voorafbetalingen
+        <app-prepayment
           [data]="originalPrepayments"
           [readonly]="true"
           [title]="'Origineel (Stap 2)'"
           [isExpanded]="true"
-        ></app-voorafbetalingen>
-        <app-voorafbetalingen
+        ></app-prepayment>
+        <app-prepayment
           [data]="prepayments"
           [readonly]="true"
           [title]="'Simulatie'"
           [isExpanded]="true"
           (dataChange)="onPrepaymentsDataChange($event)"
-        ></app-voorafbetalingen>
+        ></app-prepayment>
       </div>
     </div>
   </div>

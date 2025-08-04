@@ -4,10 +4,10 @@ import { Router } from '@angular/router';
 import { VereenvoudigdeAangifteComponent } from './vereenvoudigde-aangifte.component';
 import { VoorschottenOptimaliserenComponent } from './voorschotten-optimaliseren.component';
 import { HeaderComponent } from '../header/header';
-import { STEP_CONFIG } from '../services/tax-constants';
+import { STEP_CONFIG } from '../services/core-engine/parameters';
 import { MainCalculationEngineService } from '../services/core-engine/main-calculation-engine.service';
-import { TaxData } from '../services/tax-data.types';
-import { PrepaymentCalculationGoal } from '../services/tax-data.types';
+import { TaxData } from '../services/types/tax-data.types';
+import { PrepaymentCalculationGoal } from '../services/types/tax-data.types';
 
 @Component({
   selector: 'app-tax-simulator',

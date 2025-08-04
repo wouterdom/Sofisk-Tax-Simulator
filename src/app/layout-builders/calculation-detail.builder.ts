@@ -1,5 +1,5 @@
-import { FIELD_CODES, TAX_CONSTANTS } from '../tax-constants';
-import { CalculationRow, Prepayments } from '../tax-data.types';
+import { FIELD_CODES, TAX_CONSTANTS } from '../services/core-engine/parameters';
+import { CalculationRow, Prepayments } from '../services/types/tax-data.types';
 
 /**
  * Input required by the builder to assemble all row arrays that make up the

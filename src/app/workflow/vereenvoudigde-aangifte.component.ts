@@ -1,10 +1,10 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DeclarationSection } from '../services/tax-data.types';
+import { DeclarationSection } from '../services/types/tax-data.types';
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
 import { BaseTaxComponent } from '../components/base-tax.component';
-import { VoorafbetalingenComponent } from '../components/voorafbetalingen.component';
+import { PrepaymentComponent } from '../components/prepayment.component';
 import { UIClassDirective } from '../components/ui-classes.directive';
 import { FormattedNumberInputComponent } from '../components/formatted-number-input.component';
 
@@ -28,7 +28,7 @@ import { FormattedNumberInputComponent } from '../components/formatted-number-in
   imports: [
     CurrencyPipe,
     FormsModule, CalculationDetailsComponent,
-    VoorafbetalingenComponent, UIClassDirective, FormattedNumberInputComponent
+    PrepaymentComponent, UIClassDirective, FormattedNumberInputComponent
   ],
   templateUrl: './vereenvoudigde-aangifte.component.html',
 

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, PrepaymentStrategy } from '@app/services/tax-data.types';
-import { LoggingService } from '@app/services/logging.service';
-import { TaxError, TaxErrorCodes } from '@app/services/tax-error';
+import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, PrepaymentStrategy } from '@app/services/types/tax-data.types';
+import { LoggingService } from '@app/services/utils/logging.service';
+import { TaxError, TaxErrorCodes } from '@app/services/types/tax-error';
 
 @Injectable({
   providedIn: 'root'

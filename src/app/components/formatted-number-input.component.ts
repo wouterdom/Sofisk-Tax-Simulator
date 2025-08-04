@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, forwardRef, ChangeDetectorRef } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { NumberFormattingService } from '../services/number-formatting.service';
+import { NumberFormattingService } from '../services/utils/formatting.service';
 
 @Component({
   selector: 'app-formatted-number-input',

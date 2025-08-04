@@ -1,5 +1,5 @@
-import { CalculationRow } from '../tax-data.types';
-import { FIELD_CODES } from '../tax-constants';
+import { CalculationRow } from '../services/types/tax-data.types';
+import { FIELD_CODES } from '../services/core-engine/parameters';
 
 /**
  * Builds the "Vereenvoudigde aangifte" (Simplified Return) table.

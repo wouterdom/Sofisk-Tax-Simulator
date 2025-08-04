@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { TaxSimulatorComponent } from './Workflow-steps/Invoermethode';
+import { TaxSimulatorComponent } from './workflow/Invoermethode';
 
 @Component({
   selector: 'app-root',

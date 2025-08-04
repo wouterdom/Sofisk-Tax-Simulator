@@ -1,11 +1,11 @@
-import { TAX_CONSTANTS, FIELD_CODES, SECTION_INDICES } from '../tax-constants';
+import { TAX_CONSTANTS, FIELD_CODES, SECTION_INDICES } from './parameters';
 import { 
   TaxData, 
   Prepayments, 
   PrepaymentStrategy, 
   PrepaymentConcentration, 
   PrepaymentCalculationGoal 
-} from '../tax-data.types';
+} from '../types/tax-data.types';
 import { PrepaymentService } from './prepayment.service';
 
 /**

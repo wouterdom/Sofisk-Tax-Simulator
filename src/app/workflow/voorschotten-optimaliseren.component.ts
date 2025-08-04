@@ -1,19 +1,19 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Prepayments, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/tax-data.types';
-import { PrepaymentCalculationGoal } from '../services/tax-data.types';
+import { Prepayments, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/types/tax-data.types';
+import { PrepaymentCalculationGoal } from '../services/types/tax-data.types';
 
 // Make enum available in the template
 const PREPAYMENT_GOAL = PrepaymentCalculationGoal;
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
 import { BaseTaxComponent } from '../components/base-tax.component';
-import { VoorafbetalingenComponent } from '../components/voorafbetalingen.component';
+import { PrepaymentComponent } from '../components/prepayment.component';
 import { UIClassDirective } from '../components/ui-classes.directive';
 
 @Component({
   selector: 'app-voorschotten-optimaliseren',
   standalone: true,
-  imports: [FormsModule, CalculationDetailsComponent, VoorafbetalingenComponent, UIClassDirective],
+  imports: [FormsModule, CalculationDetailsComponent, PrepaymentComponent, UIClassDirective],
   templateUrl: './voorschotten-optimaliseren.component.html',
 
 })

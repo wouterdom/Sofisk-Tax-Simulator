@@ -20,12 +20,12 @@
     
     <!-- Voorafbetalingen Section -->
     <div [uiClass]="'card'">
-      <app-voorafbetalingen
+      <app-prepayment
         [data]="voorafbetalingen"
         [isExpanded]="voorafbetalingenOpen"
         (expandedChange)="voorafbetalingenOpen = $event"
         (dataChange)="onVoorafbetalingenDataChange($event)"
-      ></app-voorafbetalingen>
+      ></app-prepayment>
     </div>
     
     <!-- Vereenvoudigde Aangifte Sections -->

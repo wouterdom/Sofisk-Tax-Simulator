@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { PrepaymentService } from '@app/services/core-engine/prepayment.service';
-import { LoggingService } from '@app/services/logging.service';
-import { TaxError } from '@app/services/tax-error';
-import { Prepayments } from '@app/services/tax-data.types';
-import { PrepaymentCalculationGoal } from '@app/services/tax-data.types';
+import { LoggingService } from '@app/services/utils/logging.service';
+import { TaxError } from '@app/services/types/tax-error';
+import { Prepayments } from '@app/services/types/tax-data.types';
+import { PrepaymentCalculationGoal } from '@app/services/types/tax-data.types';
 
 describe('PrepaymentService', () => {
   let service: PrepaymentService;

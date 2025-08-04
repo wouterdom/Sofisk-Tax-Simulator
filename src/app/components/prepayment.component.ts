@@ -3,7 +3,7 @@ import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormattedNumberInputComponent } from './formatted-number-input.component';
 
-export interface VoorafbetalingenData {
+export interface PrepaymentData {
   va1: number;
   va2: number;
   va3: number;
@@ -12,7 +12,7 @@ export interface VoorafbetalingenData {
 }
 
 @Component({
-  selector: 'app-voorafbetalingen',
+  selector: 'app-prepayment',
   standalone: true,
   imports: [CurrencyPipe, FormsModule, FormattedNumberInputComponent],
   template: `
@@ -20,7 +20,7 @@ export interface VoorafbetalingenData {
     <div class="flex justify-between items-center mb-3 cursor-pointer select-none transition-colors rounded hover:bg-teal-50 p-2" (click)="toggleExpanded()">
       <h4 class="font-medium text-gray-900">{{ title }}</h4>
       <span class="text-sm font-medium flex items-center">
-        <span class="mr-2">{{ getTotalVoorafbetalingen() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
+        <span class="mr-2">{{ getTotalPrepayments() | currency:'EUR':'symbol':'1.2-2':'nl-BE' }}</span>
         @if (!isExpanded) {
           <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></svg>
         }
@@ -41,7 +41,7 @@ export interface VoorafbetalingenData {
               [placeholder]="'0,00'" 
               [(ngModel)]="data.va1" 
               [disabled]="readonly"
-              (valueChange)="onVoorafbetalingChange('va1', $event)">
+              (valueChange)="onPrepaymentChange('va1', $event)">
             </app-formatted-number-input>
           </div>
           
@@ -53,7 +53,7 @@ export interface VoorafbetalingenData {
               [placeholder]="'0,00'" 
               [(ngModel)]="data.va2" 
               [disabled]="readonly"
-              (valueChange)="onVoorafbetalingChange('va2', $event)">
+              (valueChange)="onPrepaymentChange('va2', $event)">
             </app-formatted-number-input>
           </div>
           
@@ -65,7 +65,7 @@ export interface VoorafbetalingenData {
               [placeholder]="'0,00'" 
               [(ngModel)]="data.va3" 
               [disabled]="readonly"
-              (valueChange)="onVoorafbetalingChange('va3', $event)">
+              (valueChange)="onPrepaymentChange('va3', $event)">
             </app-formatted-number-input>
           </div>
           
@@ -77,7 +77,7 @@ export interface VoorafbetalingenData {
               [placeholder]="'0,00'" 
               [(ngModel)]="data.va4" 
               [disabled]="readonly"
-              (valueChange)="onVoorafbetalingChange('va4', $event)">
+              (valueChange)="onPrepaymentChange('va4', $event)">
             </app-formatted-number-input>
           </div>
         </div>
@@ -85,14 +85,14 @@ export interface VoorafbetalingenData {
     }
   `
 })
-export class VoorafbetalingenComponent implements OnInit {
-  @Input() data: VoorafbetalingenData = { va1: 0, va2: 0, va3: 0, va4: 0 };
-  @Input() title = 'Voorafbetalingen';
+export class PrepaymentComponent implements OnInit {
+  @Input() data: PrepaymentData = { va1: 0, va2: 0, va3: 0, va4: 0 };
+  @Input() title = 'Prepayments';
   @Input() readonly = false;
   @Input() isExpanded = true;
   
-  @Output() dataChange = new EventEmitter<VoorafbetalingenData>();
-  @Output() valueChange = new EventEmitter<{ key: keyof VoorafbetalingenData; value: number }>();
+  @Output() dataChange = new EventEmitter<PrepaymentData>();
+  @Output() valueChange = new EventEmitter<{ key: keyof PrepaymentData; value: number }>();
   @Output() expandedChange = new EventEmitter<boolean>();
 
   ngOnInit(): void {
@@ -102,13 +102,13 @@ export class VoorafbetalingenComponent implements OnInit {
     }
   }
 
-  onVoorafbetalingChange(key: keyof VoorafbetalingenData, value: number): void {
+  onPrepaymentChange(key: keyof PrepaymentData, value: number): void {
     this.data[key] = value;
     this.dataChange.emit(this.data);
     this.valueChange.emit({ key, value });
   }
 
-  getTotalVoorafbetalingen(): number {
+  getTotalPrepayments(): number {
     return this.data.va1 + this.data.va2 + this.data.va3 + this.data.va4;
   }
 

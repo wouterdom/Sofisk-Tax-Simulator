@@ -3,13 +3,13 @@
  * (moved to layout-engine for clearer naming)
  */
 
-import { PrepaymentCalculationGoal } from '../tax-data.types';
+import { PrepaymentCalculationGoal } from '../services/types/tax-data.types';
 import {
   TaxData,
   DeclarationField,
   DeclarationSection,
   Prepayments
-} from '../tax-data.types';
+} from '../services/types/tax-data.types';
 
 export function getDefaultTaxData(): TaxData {
   const defaultPrepayments: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
