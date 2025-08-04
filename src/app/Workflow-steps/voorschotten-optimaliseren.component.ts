@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Prepayments, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/tax-data.types';
-import { PrepaymentCalculationGoal } from '../services/tax-enums';
+import { PrepaymentCalculationGoal } from '../services/tax-data.types';
 
 // Make enum available in the template
 const PREPAYMENT_GOAL = PrepaymentCalculationGoal;

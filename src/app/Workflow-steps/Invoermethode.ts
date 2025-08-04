@@ -1,10 +1,13 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { VereenvoudigdeAangifteComponent } from './vereenvoudigde-aangifte.component';
 import { VoorschottenOptimaliserenComponent } from './voorschotten-optimaliseren.component';
 import { HeaderComponent } from '../header/header';
 import { STEP_CONFIG } from '../services/tax-constants';
-import { MainCalculationEngineService } from '../services/main-calculation-engine.service';
+import { MainCalculationEngineService } from '../services/core-engine/main-calculation-engine.service';
+import { TaxData } from '../services/tax-data.types';
+import { PrepaymentCalculationGoal } from '../services/tax-data.types';
 
 @Component({
   selector: 'app-tax-simulator',

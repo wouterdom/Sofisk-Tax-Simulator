@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, PrepaymentStrategy } from '@app/services/tax-data.types';
 import { LoggingService } from '@app/services/logging.service';
 import { TaxError, TaxErrorCodes } from '@app/services/tax-error';
@@ -7,7 +7,19 @@ import { TaxError, TaxErrorCodes } from '@app/services/tax-error';
   providedIn: 'root'
 })
 export class PrepaymentService {
-  constructor(private logger: LoggingService) {}
+  private logger = inject(LoggingService);
+
+  /**
+   * Clamps prepayment values to ensure they are non-negative
+   */
+  private clampPrepayments(p: Prepayments): Prepayments {
+    return {
+      va1: Math.max(0, p.va1),
+      va2: Math.max(0, p.va2),
+      va3: Math.max(0, p.va3),
+      va4: Math.max(0, p.va4),
+    };
+  }
 
   calculateSuggestedPrepayments(
     goal: PrepaymentCalculationGoal,
@@ -37,15 +49,6 @@ export class PrepaymentService {
         return { va1: 0, va2: 0, va3: 0, va4: 0 };
       }
 
-      function clampPrepayments(p: Prepayments): Prepayments {
-        return {
-          va1: Math.max(0, p.va1),
-          va2: Math.max(0, p.va2),
-          va3: Math.max(0, p.va3),
-          va4: Math.max(0, p.va4),
-        };
-      }
-
       let result: Prepayments;
 
       switch (goal) {
@@ -54,21 +57,22 @@ export class PrepaymentService {
           
           switch (concentration) {
             case 'q1':
-              result = clampPrepayments({ va1: baseVermeerdering / 0.12, va2: 0, va3: 0, va4: 0 });
+              result = this.clampPrepayments({ va1: baseVermeerdering / 0.12, va2: 0, va3: 0, va4: 0 });
               break;
             case 'q2':
-              result = clampPrepayments({ va1: 0, va2: baseVermeerdering / 0.10, va3: 0, va4: 0 });
+              result = this.clampPrepayments({ va1: 0, va2: baseVermeerdering / 0.10, va3: 0, va4: 0 });
               break;
             case 'q3':
-              result = clampPrepayments({ va1: 0, va2: 0, va3: baseVermeerdering / 0.08, va4: 0 });
+              result = this.clampPrepayments({ va1: 0, va2: 0, va3: baseVermeerdering / 0.08, va4: 0 });
               break;
             case 'q4':
-              result = clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: baseVermeerdering / 0.06 });
+              result = this.clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: baseVermeerdering / 0.06 });
               break;
             case 'spread':
-            default:
+            default: {
               const p = baseVermeerdering / 0.36;
-              result = clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+              result = this.clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
+            }
           }
           break;
         }
@@ -89,22 +93,22 @@ export class PrepaymentService {
           switch (concentration) {
             case 'q1': {
               const P = solvePrepayment(0.12);
-              result = clampPrepayments({ va1: P, va2: 0, va3: 0, va4: 0 });
+              result = this.clampPrepayments({ va1: P, va2: 0, va3: 0, va4: 0 });
               break;
             }
             case 'q2': {
               const P = solvePrepayment(0.10);
-              result = clampPrepayments({ va1: 0, va2: P, va3: 0, va4: 0 });
+              result = this.clampPrepayments({ va1: 0, va2: P, va3: 0, va4: 0 });
               break;
             }
             case 'q3': {
               const P = solvePrepayment(0.08);
-              result = clampPrepayments({ va1: 0, va2: 0, va3: P, va4: 0 });
+              result = this.clampPrepayments({ va1: 0, va2: 0, va3: P, va4: 0 });
               break;
             }
             case 'q4': {
               const P = solvePrepayment(0.06);
-              result = clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: P });
+              result = this.clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: P });
               break;
             }
             case 'spread':
@@ -112,7 +116,7 @@ export class PrepaymentService {
               const dRateTotal = 0.36;
               const T = solvePrepayment(dRateTotal);
               const P = T / 4;
-              result = clampPrepayments({ va1: P, va2: P, va3: P, va4: P });
+              result = this.clampPrepayments({ va1: P, va2: P, va3: P, va4: P });
             }
           }
           break;

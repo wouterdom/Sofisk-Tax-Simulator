@@ -1,24 +1,26 @@
 import { TestBed } from '@angular/core/testing';
-import { PrepaymentService } from '@app/services/prepayment.service';
+import { PrepaymentService } from '@app/services/core-engine/prepayment.service';
 import { LoggingService } from '@app/services/logging.service';
-import { Prepayments } from '@app/services/tax-data.types';
 import { TaxError } from '@app/services/tax-error';
+import { Prepayments } from '@app/services/tax-data.types';
+import { PrepaymentCalculationGoal } from '@app/services/tax-data.types';
 
 describe('PrepaymentService', () => {
   let service: PrepaymentService;
   let loggingService: jasmine.SpyObj<LoggingService>;
 
   beforeEach(() => {
-    loggingService = jasmine.createSpyObj('LoggingService', ['debug', 'info', 'warn', 'error']);
+    const loggingServiceSpy = jasmine.createSpyObj('LoggingService', ['debug', 'info', 'warn', 'error']);
 
     TestBed.configureTestingModule({
       providers: [
         PrepaymentService,
-        { provide: LoggingService, useValue: loggingService }
+        { provide: LoggingService, useValue: loggingServiceSpy }
       ]
     });
 
     service = TestBed.inject(PrepaymentService);
+    loggingService = TestBed.inject(LoggingService) as jasmine.SpyObj<LoggingService>;
   });
 
   it('should be created', () => {
@@ -28,7 +30,7 @@ describe('PrepaymentService', () => {
   describe('calculateSuggestedPrepayments', () => {
     it('should return zero prepayments for small company with GeenVermeerdering goal', () => {
       const result = service.calculateSuggestedPrepayments(
-        'GeenVermeerdering',
+        PrepaymentCalculationGoal.GeenVermeerdering,
         1000,
         0,
         true,
@@ -41,7 +43,7 @@ describe('PrepaymentService', () => {
 
     it('should calculate spread prepayments for GeenVermeerdering goal', () => {
       const result = service.calculateSuggestedPrepayments(
-        'GeenVermeerdering',
+        PrepaymentCalculationGoal.GeenVermeerdering,
         1000,
         0,
         false,
@@ -59,7 +61,7 @@ describe('PrepaymentService', () => {
 
     it('should calculate concentrated prepayments for SaldoNul goal', () => {
       const result = service.calculateSuggestedPrepayments(
-        'SaldoNul',
+        PrepaymentCalculationGoal.SaldoNul,
         1000,
         100,
         false,
@@ -76,7 +78,7 @@ describe('PrepaymentService', () => {
       spyOn(Math, 'max').and.throwError('Calculation error');
 
       expect(() => service.calculateSuggestedPrepayments(
-        'GeenVermeerdering',
+        PrepaymentCalculationGoal.GeenVermeerdering,
         1000,
         0,
         false,

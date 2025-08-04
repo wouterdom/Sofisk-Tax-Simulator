@@ -3,7 +3,7 @@
  * (moved to layout-engine for clearer naming)
  */
 
-import { PrepaymentCalculationGoal } from '../tax-enums';
+import { PrepaymentCalculationGoal } from '../tax-data.types';
 import {
   TaxData,
   DeclarationField,

@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { TaxStorageService } from '@app/services/tax-storage.service';
 import { LoggingService } from '@app/services/logging.service';
+import { TaxError } from '@app/services/tax-error';
 import { TaxData } from '@app/services/tax-data.types';
-import { TaxError, TaxErrorCodes } from '@app/services/tax-error';
+import { PrepaymentCalculationGoal } from '@app/services/tax-data.types';
 
 describe('TaxStorageService', () => {
   let service: TaxStorageService;
@@ -15,7 +16,7 @@ describe('TaxStorageService', () => {
     prepayments: { va1: 0, va2: 0, va3: 0, va4: 0 },
     committedPrepayments: { va1: 0, va2: 0, va3: 0, va4: 0 },
     prepaymentStrategy: 'spread',
-    prepaymentCalculationGoal: 'GeenVermeerdering',
+    prepaymentCalculationGoal: PrepaymentCalculationGoal.GeenVermeerdering,
     prepaymentConcentration: 'spread',
     useSuggestedPrepayments: false,
     canUseReducedRate: false,
@@ -27,7 +28,10 @@ describe('TaxStorageService', () => {
     loggingService = jasmine.createSpyObj('LoggingService', ['debug', 'error']);
     localStorageSpy = jasmine.createSpyObj('Storage', ['getItem', 'setItem', 'removeItem']);
 
-    spyOn(window, 'localStorage', 'get').and.returnValue(localStorageSpy);
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageSpy,
+      writable: true
+    });
 
     TestBed.configureTestingModule({
       providers: [

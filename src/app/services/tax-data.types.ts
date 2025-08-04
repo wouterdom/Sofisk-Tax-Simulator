@@ -27,8 +27,12 @@ export interface Prepayments {
   [key: string]: number;  // Add index signature for dynamic access
 }
 
-import { PrepaymentCalculationGoal } from './tax-enums';
-export { PrepaymentCalculationGoal };
+export enum PrepaymentCalculationGoal {
+  None = 'none',
+  GeenVermeerdering = 'GeenVermeerdering',
+  SaldoNul = 'SaldoNul'
+}
+
 export type PrepaymentStrategy = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
 export type PrepaymentConcentration = 'none' | 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
 

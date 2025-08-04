@@ -1,19 +1,19 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { PrepaymentCalculationGoal } from './tax-enums';
-import { getDefaultTaxData } from './layout-structuur/Vereenvoudigde-aangifte';
-import { buildCalculationDetail } from './layout-structuur/calculation-detail.builder';
-import { buildSimplifiedReturn } from './layout-structuur/Key-values-Cards';
-import { runCoreEngine, CoreEngineInput } from './core-engine/calculation-core';
-import { TAX_CONSTANTS } from './tax-constants';
+import { PrepaymentCalculationGoal } from '../tax-data.types';
+import { getDefaultTaxData } from '../layout-structuur/Vereenvoudigde-aangifte';
+import { buildCalculationDetail } from '../layout-structuur/calculation-detail.builder';
+import { buildSimplifiedReturn } from '../layout-structuur/Key-values-Cards';
+import { runCoreEngine, CoreEngineInput } from './calculation-core';
+import { TAX_CONSTANTS } from '../tax-constants';
 import { 
   DeclarationSection, 
   Prepayments, 
-  PrepaymentStrategy, 
   PrepaymentConcentration,
   TaxCalculationResults,
   TaxData
-} from './tax-data.types';
+} from '../tax-data.types';
+import { PrepaymentService } from './prepayment.service';
 
 /**
  * Main calculation engine service for tax calculations.
@@ -35,6 +35,8 @@ export class MainCalculationEngineService {
   public readonly data$: Observable<TaxData | null>;
   public readonly results$: Observable<TaxCalculationResults | null>;
   public readonly isLoading$: Observable<boolean>;
+
+  private prepaymentService = inject(PrepaymentService);
 
   constructor() {
     this.dataSubject = new BehaviorSubject<TaxData | null>(null);
@@ -65,7 +67,7 @@ export class MainCalculationEngineService {
       prepaymentConcentration: data.prepaymentConcentration,
       prepaymentStrategy: data.prepaymentStrategy
     };
-    const core = runCoreEngine(coreInput);
+    const core = runCoreEngine(coreInput, this.prepaymentService);
 
     // Determine which prepayments to use for detailed calculation based on step context
     // Step 2: Use current prepayments (values being edited by user)
@@ -203,10 +205,10 @@ export class MainCalculationEngineService {
         prepaymentConcentration: currentData.prepaymentConcentration,
         prepaymentStrategy: currentData.prepaymentStrategy
       };
-      const core = runCoreEngine(coreInput);
+      const core = runCoreEngine(coreInput, this.prepaymentService);
 
       // Update section totals and subtotals
-      sections.forEach((section, index) => {
+      sections.forEach((section) => {
         if (section.total) {
           section.total.value = section.fields.reduce((acc, field) => acc + (field.value || 0), 0);
         }

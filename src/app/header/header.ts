@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { MainCalculationEngineService } from '../services/main-calculation-engine.service';
+import { MainCalculationEngineService } from '../services/core-engine/main-calculation-engine.service';
 import { Subscription } from 'rxjs';
 
 @Component({
