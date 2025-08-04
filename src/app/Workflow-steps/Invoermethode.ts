@@ -1,23 +1,27 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { VereenvoudigdeAangifteComponent } from '../vereenvoudigde-aangifte/vereenvoudigde-aangifte.component';
-import { VoorschottenOptimaliserenComponent } from '../voorschotten-optimaliseren/voorschotten-optimaliseren.component';
+import { VereenvoudigdeAangifteComponent } from './vereenvoudigde-aangifte.component';
+import { VoorschottenOptimaliserenComponent } from './voorschotten-optimaliseren.component';
 import { HeaderComponent } from '../header/header';
+import { STEP_CONFIG } from '../services/tax-constants';
+import { MainCalculationEngineService } from '../services/main-calculation-engine.service';
 
 @Component({
   selector: 'app-tax-simulator',
   standalone: true,
   imports: [CommonModule, HeaderComponent, VereenvoudigdeAangifteComponent, VoorschottenOptimaliserenComponent],
-  templateUrl: './tax-simulator.html'
+  templateUrl: './Invoermethode.html'
 })
 export class TaxSimulatorComponent implements OnInit, AfterViewInit {
-  currentStep = 1;
+  currentStep: number = STEP_CONFIG.STEPS.SELECT_INVOERMETHODE;
   showSaveDialog = false;
 
   @ViewChild(VoorschottenOptimaliserenComponent)
   voorschottenComponent: VoorschottenOptimaliserenComponent | undefined;
 
   private readonly STEP_STORAGE_KEY = 'sofisk_current_step';
+
+  constructor(private taxDataService: MainCalculationEngineService) {}
 
   ngOnInit(): void {
     this.loadStep();
@@ -43,9 +47,9 @@ export class TaxSimulatorComponent implements OnInit, AfterViewInit {
   }
 
   goToStep(step: number): void {
-    if (step >= 1 && step <= 3) {
+    if (step >= STEP_CONFIG.MIN_STEP && step <= STEP_CONFIG.MAX_STEP) {
       // Intercept navigation from 3 to 2 for confirmation
-      if (this.currentStep === 3 && step === 2 && this.voorschottenComponent) {
+      if (this.currentStep === STEP_CONFIG.STEPS.VOORSCHOTTEN_OPTIMALISEREN && step === STEP_CONFIG.STEPS.VEREENVOUDIGDE_AANGIFTE && this.voorschottenComponent) {
         this.voorschottenComponent.confirmAndCommitIfNeeded((commit: boolean) => {
           if (commit) {
             // Already committed in child
@@ -53,13 +57,17 @@ export class TaxSimulatorComponent implements OnInit, AfterViewInit {
             // Revert simulation values to committed values
             this.voorschottenComponent?.revertSimulationToCommitted();
           }
-          this.currentStep = 2;
+          this.currentStep = STEP_CONFIG.STEPS.VEREENVOUDIGDE_AANGIFTE;
           this.saveStep();
+          // Force recalculation after step change
+          this.taxDataService.forceRecalculation();
         });
         return;
       }
       this.currentStep = step;
       this.saveStep();
+      // Force recalculation after step change
+      this.taxDataService.forceRecalculation();
     }
   }
 
@@ -67,6 +75,8 @@ export class TaxSimulatorComponent implements OnInit, AfterViewInit {
     if (this.currentStep < 3) {
       this.currentStep++;
       this.saveStep();
+      // Force recalculation after step change
+      this.taxDataService.forceRecalculation();
     }
   }
 
@@ -83,11 +93,15 @@ export class TaxSimulatorComponent implements OnInit, AfterViewInit {
           }
           this.currentStep = 2;
           this.saveStep();
+          // Force recalculation after step change
+          this.taxDataService.forceRecalculation();
         });
         return;
       }
       this.currentStep--;
       this.saveStep();
+      // Force recalculation after step change
+      this.taxDataService.forceRecalculation();
     }
   }
 

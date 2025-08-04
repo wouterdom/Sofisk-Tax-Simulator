@@ -30,7 +30,7 @@ export interface Prepayments {
 import { PrepaymentCalculationGoal } from './tax-enums';
 export { PrepaymentCalculationGoal };
 export type PrepaymentStrategy = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
-export type PrepaymentConcentration = 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
+export type PrepaymentConcentration = 'none' | 'spread' | 'q1' | 'q2' | 'q3' | 'q4';
 
 export interface CalculationRow {
   code: string;
@@ -71,6 +71,13 @@ export interface TaxCalculationResults {
   vermeerderingRows: CalculationRow[];
   vermeerderingTotal: number;
   
+  // Explicit helper fields for UI (avoids magic row indexes)
+  berekeningVermeerdering: number;
+  totaalAftrekVA: number;
+  aftrekDoorVoorafbetalingen: number;
+  vermeerderingBeforeDeMinimis: number;
+  deMinimisApplied: boolean;
+  
   // Result section
   resultRows: CalculationRow[];
   finalTaxPayable: number;
@@ -93,6 +100,9 @@ export interface TaxCalculationResults {
   currentPrepayments: number;
   shortfall: number;
   suggestedPrepayments: Prepayments;
+
+  // Vereenvoudigde aangifte (simplified tax card)
+  simplifiedReturnRows?: CalculationRow[];
 }
 
 export interface TaxData {

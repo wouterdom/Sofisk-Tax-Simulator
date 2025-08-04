@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { NgClass, CurrencyPipe, DecimalPipe } from '@angular/common';
-import { TaxCalculationResults } from '../services/main-calculation-engine.service';
+import { TaxCalculationResults } from '../services/tax-data.types';
 import { LoadingIndicatorComponent } from './loading-indicator.component';
 
 @Component({
@@ -238,19 +238,19 @@ export class CalculationDetailsComponent {
 
   // Type-safe getters for vermeerdering values
   getTotaalAftrekVA(): number {
-    return this.calculationResults?.vermeerderingRows?.[5]?.result ?? 0;
+    return this.calculationResults?.totaalAftrekVA ?? 0;
   }
 
   getBerekeningVermeerdering(): number {
-    return this.calculationResults?.vermeerderingRows?.[0]?.result ?? 0;
+    return this.calculationResults?.berekeningVermeerdering ?? 0;
   }
 
   getAftrekDoorVoorafbetalingen(): number {
-    return this.calculationResults?.vermeerderingRows?.[6]?.result ?? 0;
+    return this.calculationResults?.aftrekDoorVoorafbetalingen ?? 0;
   }
 
   getVermeerderingResult(): number {
-    return this.calculationResults?.vermeerderingRows?.[7]?.result ?? 0;
+    return this.calculationResults?.vermeerderingTotal ?? 0;
   }
 
   hasTotaalAftrekVA(): boolean {
@@ -263,19 +263,11 @@ export class CalculationDetailsComponent {
 
   // Check if de-minimis rule is applied (final result is 0 but before de-minimis it was > 0)
   isDeMinimisRuleApplied(): boolean {
-    if (!this.calculationResults?.vermeerderingRows || this.calculationResults.vermeerderingRows.length < 8) {
-      return false;
-    }
-    
-    // Check if the calculated vermeerdering before de-minimis is > 0 but final total is 0
-    const vermeerderingBeforeDeMinimis = this.calculationResults.vermeerderingRows[7]?.result ?? 0;
-    const finalVermeerderingTotal = this.calculationResults.vermeerderingTotal ?? 0;
-    
-    return vermeerderingBeforeDeMinimis > 0 && finalVermeerderingTotal === 0;
+    return this.calculationResults?.deMinimisApplied ?? false;
   }
 
   getVermeerderingBeforeDeMinimis(): number {
-    return this.calculationResults?.vermeerderingRows?.[7]?.result ?? 0;
+    return this.calculationResults?.vermeerderingBeforeDeMinimis ?? 0;
   }
 
   getTaxCardTitle(): string {

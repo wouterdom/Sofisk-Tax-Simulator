@@ -1,8 +1,9 @@
 import { Component, signal } from '@angular/core';
-import { TaxSimulatorComponent } from './tax-simulator/tax-simulator';
+import { TaxSimulatorComponent } from './Workflow-steps/Invoermethode';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [TaxSimulatorComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'

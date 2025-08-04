@@ -25,6 +25,12 @@ export class PrepaymentService {
         concentration
       });
 
+      // If concentration is 'none', return zero prepayments
+      if (concentration === 'none') {
+        this.logger.info('Concentration is none, returning zero prepayments');
+        return { va1: 0, va2: 0, va3: 0, va4: 0 };
+      }
+
       // If it's a small company in first 3 years, no increase is due
       if (goal === 'GeenVermeerdering' && isSmallCompany) {
         this.logger.info('Small company in first 3 years, returning zero prepayments');

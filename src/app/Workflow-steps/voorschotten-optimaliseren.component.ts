@@ -15,7 +15,7 @@ import { UIClassDirective } from '../components/ui-classes.directive';
   standalone: true,
   imports: [FormsModule, CalculationDetailsComponent, VoorafbetalingenComponent, UIClassDirective],
   templateUrl: './voorschotten-optimaliseren.component.html',
-  styleUrl: './voorschotten-optimaliseren.component.css'
+
 })
 export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   // --- Component State ---
@@ -72,25 +72,9 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
       console.log('Results changed, suggested prepayments:', results.suggestedPrepayments);
       const currentData = this.taxDataService.getData();
       
-      let newPrepayments: Prepayments;
-      
-      if (currentData?.prepaymentCalculationGoal === PrepaymentCalculationGoal.SaldoNul) {
-        // For "Saldo belasting = 0", use the suggested prepayments
-        newPrepayments = results.suggestedPrepayments;
-      } else {
-        // For other cases, get values from vermeerderingRows
-        const va1Row = results.vermeerderingRows.find(r => r.code === '1811');
-        const va2Row = results.vermeerderingRows.find(r => r.code === '1812');
-        const va3Row = results.vermeerderingRows.find(r => r.code === '1813');
-        const va4Row = results.vermeerderingRows.find(r => r.code === '1814');
-        
-        newPrepayments = {
-          va1: va1Row?.amount || 0,
-          va2: va2Row?.amount || 0,
-          va3: va3Row?.amount || 0,
-          va4: va4Row?.amount || 0
-        };
-      }
+      // Always use the suggested prepayments from the calculation results
+      // This contains the optimal prepayments based on the selected goal and concentration
+      const newPrepayments: Prepayments = results.suggestedPrepayments;
 
       // Only update if values actually changed to prevent loops
       if (JSON.stringify(this.prepayments) !== JSON.stringify(newPrepayments)) {
@@ -125,8 +109,6 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
     this.cdr.detectChanges();
   }
 
-
-  
   /**
    * Handles changes from the concentration options.
    */
@@ -139,7 +121,8 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
 
   public onPrepaymentsDataChange(newData: Prepayments): void {
     this.prepayments = { ...newData };
-    this.taxDataService.updatePrepayments(this.prepayments, false);
+    // Don't update the service's prepayments field from step 3
+    // This prevents interference with step 2's calculation
     this.checkIfModified();
   }
   
@@ -177,8 +160,8 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
 
   public revertSimulationToCommitted(): void {
     this.prepayments = this.taxDataService.getCommittedPrepayments();
-    // Also update the service to ensure calculation results are reset
-    this.taxDataService.updatePrepayments(this.prepayments, false);
+    // Don't update the service's prepayments field from step 3
+    // This prevents interference with step 2's calculation
     this.taxDataService.stopUsingSuggestedPrepayments();
     this.checkIfModified();
   }

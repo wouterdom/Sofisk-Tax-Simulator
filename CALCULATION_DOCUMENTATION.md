@@ -192,6 +192,33 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 
 ---
 
+## Prepayment Calculation Business Logic
+
+### Step 2: Original Values Display
+- **Detail van de berekening**: Shows calculation using **original prepayment values** (committed prepayments)
+- **Purpose**: Display the current tax situation with existing prepayments
+- **Data source**: `committedPrepayments` from TaxData
+
+### Step 3: Simulation Mode
+- **Detail van de berekening**: Shows calculation using **simulated prepayment values** (suggested prepayments)
+- **Purpose**: Display what the tax situation would be with optimized prepayments
+- **Data source**: `suggestedPrepayments` from calculation results
+- **Original values display**: Always shows a separate screen with the original values (step 2 scenario)
+
+### Navigation Logic
+- **Step 2 → Step 3**: Automatically switches to simulation mode
+- **Step 3 → Step 2**: Prompts user to commit changes
+  - **"Yes"**: Commits simulation values to original values
+  - **"No"**: Discards simulation values, returns to original values
+
+### Implementation Requirements
+1. **Step 2**: Use `committedPrepayments` for detailed calculation display
+2. **Step 3**: Use `suggestedPrepayments` for detailed calculation display
+3. **Step 3**: Always show original values in a separate section
+4. **Navigation**: Handle commit/discard logic when going back from step 3 to step 2
+
+---
+
 ## Implementation Notes
 
 ### Data Flow
