@@ -34,7 +34,7 @@ export interface PrepaymentData {
       <div>
         <div class="space-y-2 bg-teal-50 p-4 rounded">
           <div class="flex items-center mb-2">
-            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 1' }}</span>
+            <span class="flex-1 text-gray-700">{{ readonly ? 'VA1' : 'Voorafbetaling 1' }}</span>
             <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1811</span>
             <app-formatted-number-input 
               [fieldName]="'1811'" 
@@ -46,7 +46,7 @@ export interface PrepaymentData {
           </div>
           
           <div class="flex items-center mb-2">
-            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 2' }}</span>
+            <span class="flex-1 text-gray-700">{{ readonly ? 'VA2' : 'Voorafbetaling 2' }}</span>
             <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1812</span>
             <app-formatted-number-input 
               [fieldName]="'1812'" 
@@ -58,7 +58,7 @@ export interface PrepaymentData {
           </div>
           
           <div class="flex items-center mb-2">
-            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 3' }}</span>
+            <span class="flex-1 text-gray-700">{{ readonly ? 'VA3' : 'Voorafbetaling 3' }}</span>
             <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1813</span>
             <app-formatted-number-input 
               [fieldName]="'1813'" 
@@ -70,7 +70,7 @@ export interface PrepaymentData {
           </div>
           
           <div class="flex items-center mb-2">
-            <span class="flex-1 text-gray-700">{{ readonly ? 'Origineel' : 'Voorafbetaling 4' }}</span>
+            <span class="flex-1 text-gray-700">{{ readonly ? 'VA4' : 'Voorafbetaling 4' }}</span>
             <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">1814</span>
             <app-formatted-number-input 
               [fieldName]="'1814'" 
@@ -87,7 +87,7 @@ export interface PrepaymentData {
 })
 export class PrepaymentComponent implements OnInit {
   @Input() data: PrepaymentData = { va1: 0, va2: 0, va3: 0, va4: 0 };
-  @Input() title = 'Prepayments';
+  @Input() title = 'Totaal voorafbetalingen (code 1810)';
   @Input() readonly = false;
   @Input() isExpanded = true;
   

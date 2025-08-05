@@ -87,22 +87,32 @@ src/app/
 │   │   ├── calculation-core.ts         # Pure mathematical calculations
 │   │   ├── main-calculation-engine.service.ts  # Orchestration service
 │   │   ├── prepayment.service.ts       # Prepayment business logic
-│   │   └── index.ts                    # Barrel exports
-│   ├── layout-structuur/               # UI presentation builders
-│   │   ├── calculation-detail.builder.ts
-│   │   ├── Key-values-Cards.ts
-│   │   └── Vereenvoudigde-aangifte.ts
-│   ├── tax-data.types.ts               # TypeScript interfaces
-│   ├── tax-constants.ts                # Tax rates and constants
-│   ├── tax-enums.ts                    # Enum definitions
-│   ├── tax-storage.service.ts          # Data persistence
-│   ├── number-formatting.service.ts
-│   ├── logging.service.ts
-│   └── tax-error.ts
-├── Workflow-steps/                     # Main application views
+│   │   └── parameters.ts               # Calculation parameters
+│   ├── types/                          # TypeScript type definitions
+│   │   ├── tax-data.types.ts           # Core data interfaces
+│   │   └── tax-error.ts                # Error handling types
+│   └── utils/                          # Utility services
+│       ├── formatting.service.ts       # Number and currency formatting
+│       ├── logging.service.ts          # Application logging
+│       └── storage.service.ts          # Data persistence
+├── layout-builders/                    # UI presentation builders
+│   ├── calculation-detail.builder.ts   # Calculation detail rows
+│   ├── Key-values-Cards.ts             # Simplified return cards
+│   └── Vereenvoudigde-aangifte.ts      # Declaration structure
+├── workflow/                           # Main application views
+│   ├── Invoermethode.html/.ts          # Step 1: Input method selection
+│   ├── vereenvoudigde-aangifte.component.html/.ts  # Step 2: Declaration
+│   └── voorschotten-optimaliseren.component.html/.ts  # Step 3: Optimization
 ├── components/                         # Reusable UI components
+│   ├── base-tax.component.ts           # Base tax calculation component
+│   ├── calculation-details.component.ts # Calculation breakdown display
+│   ├── formatted-number-input.component.ts # Number input with formatting
+│   ├── loading-indicator.component.ts  # Loading state indicator
+│   ├── prepayment.component.ts         # Prepayment input component
+│   └── ui-classes.directive.ts         # Dynamic CSS class management
 ├── header/                             # Application header
-└── unit-tests/                         # Unit tests
+└── unit-tests/                         # Unit tests (separate directory)
+    └── services/                       # Service-specific tests
 ```
 
 ---
@@ -163,6 +173,14 @@ const prepaymentsForDetail = this.getCurrentStep() === 3
 - **Key-Values Cards Builder**: Creates simplified return cards
 - **Vereenvoudigde Aangifte Builder**: Provides default declaration structure
 
+### 5.5 Utility Services
+**Purpose:** Provide common functionality across the application
+
+**Services:**
+- **Formatting Service**: Number and currency formatting with Belgian standards
+- **Logging Service**: Centralized application logging
+- **Storage Service**: Data persistence with localStorage
+
 ---
 
 ## 6. Data Flow
@@ -206,13 +224,14 @@ npm start  # Runs on localhost:4200
 1. `services/core-engine/main-calculation-engine.service.ts` - Start here
 2. `services/core-engine/calculation-core.ts` - Pure calculation logic
 3. `services/core-engine/prepayment.service.ts` - Prepayment business logic
-4. `tax-data.types.ts` - All data structures
+4. `services/types/tax-data.types.ts` - All data structures
 
 **Development Guidelines:**
 - Keep calculation logic in `calculation-core.ts` (pure functions)
 - Add state management to `MainCalculationEngineService`
 - Use layout builders for UI presentation
 - Follow step-aware logic patterns
+- Place unit tests in the separate `unit-tests/` directory
 
 ### 7.2 For Business Analysts
 
@@ -220,7 +239,7 @@ npm start  # Runs on localhost:4200
 - **Reduced Rate**: 20% for first €100,000 (if eligible)
 - **Standard Rate**: 25% for amounts above €100,000
 - **Vermeerdering**: 9% penalty for insufficient prepayments
-- **De Minimis**: No penalty if amount ≤ €1,000 or 1% of tax base
+- **De Minimis**: No penalty if amount ≤ €50 or 0.5% of tax base
 - **Korfbeperking**: Limits section 6 deductions
 
 **Calculation Steps:**

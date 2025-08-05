@@ -27,8 +27,14 @@
             Last saved: {{ lastSaved | date:'short' }}
           </span>
           <button 
+            class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            [disabled]="!canCommit"
+            (click)="commitData()">
+            Commit
+          </button>
+          <button 
             class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
-            (click)="resetData()">
+            (click)="showResetConfirmation()">
             Reset
           </button>
         </div>
@@ -39,3 +45,149 @@
     </div>
   </div>
 </header>
+
+<!-- Commit Dialog -->
+@if (showSaveDialog) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold text-gray-900">Commit to Declaration</h3>
+        <button 
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+          (click)="cancelSave()">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="mb-6">
+        <h4 class="text-lg font-medium text-gray-900 mb-2">Company: Lefebvre sarrut Belgium</h4>
+        <p class="text-sm text-gray-600 mb-4">Select a declaration to commit your prepayment data to:</p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto">
+        <div class="space-y-4">
+          @for (year of declarationYears; track year.year) {
+            <div class="border border-gray-200 rounded-lg">
+              <div class="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 cursor-pointer" (click)="year.isExpanded = !year.isExpanded">
+                <h5 class="font-medium text-gray-900">{{ year.year }}</h5>
+                <svg class="w-5 h-5 text-gray-600 transition-transform" [class.rotate-180]="year.isExpanded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+              
+              @if (year.isExpanded) {
+                <div class="p-4">
+                  @for (declaration of year.declarations; track declaration.id) {
+                    <div class="border border-gray-200 rounded-lg p-4 mb-3 hover:bg-gray-50 transition-colors cursor-pointer" (click)="selectDeclaration(declaration)">
+                      <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">VenB</span>
+                          <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">AJ {{ declaration.assessmentYear }}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                          <div class="w-3 h-3 border-2 border-gray-300 rounded-full"></div>
+                          <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                          </svg>
+                          <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                          </svg>
+                        </div>
+                      </div>
+                      
+                      <h6 class="font-medium text-gray-900 mb-2">{{ declaration.name }}</h6>
+                      <p class="text-sm text-gray-600 mb-2">Periode {{ declaration.period }}</p>
+                      <p class="text-xs text-gray-500">Laatst gewijzigd {{ declaration.lastModified }}</p>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+        <button 
+          class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+          (click)="cancelSave()">
+          Cancel
+        </button>
+        <button 
+          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+          [disabled]="!selectedDeclaration"
+          (click)="saveData()">
+          Commit to Selected Declaration
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Reset Confirmation Dialog -->
+@if (showResetDialog) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-lg font-medium text-gray-900">Reset Data</h3>
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <p class="text-sm text-gray-600">
+          Are you sure you want to clear all data? This cannot be undone.
+        </p>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button 
+          class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+          (click)="cancelReset()">
+          Cancel
+        </button>
+        <button 
+          class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          (click)="confirmReset()">
+          Reset
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Success Banner -->
+@if (showSuccessBanner) {
+  <div class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50">
+    <div class="bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 flex items-center justify-between">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-green-800">
+            {{ successMessage }}
+          </p>
+        </div>
+      </div>
+      <div class="ml-4 flex-shrink-0">
+        <button 
+          class="text-green-400 hover:text-green-600 transition-colors"
+          (click)="hideSuccessBanner()">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+}
