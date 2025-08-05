@@ -36,6 +36,8 @@ import { FormattedNumberInputComponent } from '../components/formatted-number-in
 export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
   declarationSections: DeclarationSection[] = [];
 
+  @Output() step3Requested = new EventEmitter<void>();
+
   constructor(private cdr: ChangeDetectorRef) {
     super();
   }
@@ -125,5 +127,12 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
     } else {
       return 'Te betalen belastingen'; // When it's 0, keep as taxes to be paid
     }
+  }
+
+  /**
+   * Emits an event to request navigation to step 3
+   */
+  goToStep3(): void {
+    this.step3Requested.emit();
   }
 }

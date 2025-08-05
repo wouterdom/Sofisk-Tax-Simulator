@@ -22,18 +22,18 @@ describe('Period Validation', () => {
   });
 
   describe('canProceedToStep2', () => {
-    it('should return false when period is not confirmed', () => {
-      component.periodConfirmed = false;
-      component.taxYearConfirmed = true;
+    it('should return false when start date is not filled in', () => {
+      component.periodStart = null;
+      component.periodEnd = new Date(2023, 11, 31);
       component.selectedInvoermethode = 'handmatig';
 
       const result = component.canProceedToStep2();
       expect(result).toBe(false);
     });
 
-    it('should return false when tax year is not confirmed', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = false;
+    it('should return false when end date is not filled in', () => {
+      component.periodStart = new Date(2023, 0, 1);
+      component.periodEnd = null;
       component.selectedInvoermethode = 'handmatig';
 
       const result = component.canProceedToStep2();
@@ -41,8 +41,8 @@ describe('Period Validation', () => {
     });
 
     it('should return false when invoermethode is not selected', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = true;
+      component.periodStart = new Date(2023, 0, 1);
+      component.periodEnd = new Date(2023, 11, 31);
       component.selectedInvoermethode = null;
 
       const result = component.canProceedToStep2();
@@ -50,8 +50,8 @@ describe('Period Validation', () => {
     });
 
     it('should return true when all validations pass', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = true;
+      component.periodStart = new Date(2023, 0, 1);
+      component.periodEnd = new Date(2023, 11, 31);
       component.selectedInvoermethode = 'handmatig';
 
       const result = component.canProceedToStep2();
@@ -59,8 +59,8 @@ describe('Period Validation', () => {
     });
 
     it('should return true when all validations pass with vorig_jaar', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = true;
+      component.periodStart = new Date(2023, 0, 1);
+      component.periodEnd = new Date(2023, 11, 31);
       component.selectedInvoermethode = 'vorig_jaar';
 
       const result = component.canProceedToStep2();
@@ -69,27 +69,18 @@ describe('Period Validation', () => {
   });
 
   describe('getValidationMessage', () => {
-    it('should return period confirmation message when period not confirmed', () => {
-      component.periodConfirmed = false;
-      component.taxYearConfirmed = true;
+    it('should return date validation message when dates not filled in', () => {
+      component.periodStart = null;
+      component.periodEnd = null;
       component.selectedInvoermethode = 'handmatig';
 
       const result = component.getValidationMessage();
-      expect(result).toBe('Bevestig eerst de periode');
-    });
-
-    it('should return tax year confirmation message when tax year not confirmed', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = false;
-      component.selectedInvoermethode = 'handmatig';
-
-      const result = component.getValidationMessage();
-      expect(result).toBe('Bevestig eerst het aanslagjaar');
+      expect(result).toBe('Vul eerst de begin- en einddatum in');
     });
 
     it('should return invoermethode selection message when not selected', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = true;
+      component.periodStart = new Date(2023, 0, 1);
+      component.periodEnd = new Date(2023, 11, 31);
       component.selectedInvoermethode = null;
 
       const result = component.getValidationMessage();
@@ -97,8 +88,8 @@ describe('Period Validation', () => {
     });
 
     it('should return empty string when all validations pass', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = true;
+      component.periodStart = new Date(2023, 0, 1);
+      component.periodEnd = new Date(2023, 11, 31);
       component.selectedInvoermethode = 'handmatig';
 
       const result = component.getValidationMessage();
@@ -108,11 +99,11 @@ describe('Period Validation', () => {
 
   describe('tax year calculation', () => {
     it('should calculate correct tax year for December 31st period end', () => {
-      component.periodEnd = new Date(2024, 11, 31);
+      component.periodEnd = new Date(2023, 11, 31);
       component.calculateTaxYear();
       
-      expect(component.calculatedTaxYear).toBe('2025');
-      expect(component.calculatedBookYear).toBe('2024');
+      expect(component.calculatedTaxYear).toBe('2024');
+      expect(component.calculatedBookYear).toBe('2023');
     });
 
     it('should calculate correct tax year for December 30th period end', () => {
@@ -130,20 +121,36 @@ describe('Period Validation', () => {
       expect(component.calculatedTaxYear).toBe('2024');
       expect(component.calculatedBookYear).toBe('2024');
     });
+
+    it('should calculate correct boekjaar for multi-year period', () => {
+      component.periodStart = new Date(2024, 6, 1); // July 1, 2024
+      component.periodEnd = new Date(2025, 5, 30); // June 30, 2025
+      component.calculateTaxYear();
+      
+      expect(component.calculatedTaxYear).toBe('2025');
+      expect(component.calculatedBookYear).toBe('2024/2025');
+    });
+
+    it('should calculate correct boekjaar for fiscal year period', () => {
+      component.periodStart = new Date(2024, 3, 1); // April 1, 2024
+      component.periodEnd = new Date(2025, 2, 31); // March 31, 2025
+      component.calculateTaxYear();
+      
+      expect(component.calculatedTaxYear).toBe('2025');
+      expect(component.calculatedBookYear).toBe('2024/2025');
+    });
+
+    it('should calculate correct boekjaar for same year period', () => {
+      component.periodStart = new Date(2024, 0, 1); // January 1, 2024
+      component.periodEnd = new Date(2024, 11, 31); // December 31, 2024
+      component.calculateTaxYear();
+      
+      expect(component.calculatedTaxYear).toBe('2025');
+      expect(component.calculatedBookYear).toBe('2024');
+    });
   });
 
   describe('period change handling', () => {
-    it('should reset confirmations when period changes', () => {
-      component.periodConfirmed = true;
-      component.taxYearConfirmed = true;
-      component.selectedInvoermethode = 'handmatig';
-
-      component.onPeriodChange();
-
-      expect(component.periodConfirmed).toBe(false);
-      expect(component.taxYearConfirmed).toBe(false);
-    });
-
     it('should recalculate tax year when period changes', () => {
       const originalTaxYear = component.calculatedTaxYear;
       component.periodEnd = new Date(2023, 11, 31);

@@ -74,52 +74,50 @@
     <div class="space-y-6">
       <!-- Period Confirmation Section -->
       <div class="bg-white border border-gray-200 rounded-lg p-6 max-w-4xl mx-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Periode & Aanslagjaar</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Inlichtingen omtrent het betreffende belastbaar tijdperk</h3>
         
-        <!-- Period Display -->
+        <!-- Period Input Fields -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700">Periode</label>
-            <div class="mt-1 p-3 bg-gray-50 border rounded-md">
-              <span class="text-sm text-gray-900">{{ periodStart | date:'dd/MM/yyyy' }} → {{ periodEnd | date:'dd/MM/yyyy' }}</span>
-            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Begindatum belastbaar tijdperk</label>
+            <input type="date" 
+                   [(ngModel)]="periodStart" 
+                   (input)="onPeriodChange()"
+                   class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Einddatum belastbaar tijdperk</label>
+            <input type="date" 
+                   [(ngModel)]="periodEnd" 
+                   (input)="onPeriodChange()"
+                   class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
+        
+        <!-- Calculated Values Display -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">Boekjaar</label>
             <div class="mt-1 p-3 bg-gray-50 border rounded-md">
-              <span class="text-sm text-gray-900">{{ calculatedBookYear }}</span>
+              <span class="text-sm text-gray-900">{{ calculatedBookYear || 'Niet berekend' }}</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Aanslagjaar</label>
+            <div class="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <span class="text-sm font-medium text-blue-900">{{ calculatedTaxYear || 'Niet berekend' }}</span>
             </div>
           </div>
         </div>
         
-        <!-- Tax Year Display -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700">Aanslagjaar</label>
-          <div class="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <span class="text-sm font-medium text-blue-900">{{ calculatedTaxYear }}</span>
+        <!-- Tax Year Warning Message -->
+        @if (taxYearWarning) {
+          <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p class="text-sm text-yellow-800">
+              <strong>Let op:</strong> {{ taxYearWarning }}
+            </p>
           </div>
-        </div>
-        
-        <!-- Confirmation Checkboxes -->
-        <div class="space-y-3">
-          <div class="flex items-center">
-            <input type="checkbox" id="periodConfirmed" [(ngModel)]="periodConfirmed" 
-                   (change)="onPeriodConfirmationChange()"
-                   class="h-4 w-4 text-blue-600 rounded border-gray-300">
-            <label for="periodConfirmed" class="ml-2 text-sm text-gray-700">
-              Ik bevestig dat de periode correct is
-            </label>
-          </div>
-          <div class="flex items-center">
-            <input type="checkbox" id="taxYearConfirmed" [(ngModel)]="taxYearConfirmed" 
-                   (change)="onTaxYearConfirmationChange()"
-                   [disabled]="!periodConfirmed"
-                   class="h-4 w-4 text-blue-600 rounded border-gray-300 disabled:opacity-50">
-            <label for="taxYearConfirmed" class="ml-2 text-sm text-gray-700" [class.opacity-50]="!periodConfirmed">
-              Ik bevestig dat het aanslagjaar {{ calculatedTaxYear }} correct is
-            </label>
-          </div>
-        </div>
+        }
       </div>
 
       <!-- Invoermethode Selection -->
@@ -139,7 +137,7 @@
           <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
                [ngClass]="selectedInvoermethode === 'handmatig' ? 'border-teal-500 bg-teal-50' : 'border-gray-300 hover:border-teal-300'"
                (click)="onInvoermethodeSelect('handmatig')"
-               [class.opacity-50]="!periodConfirmed || !taxYearConfirmed">
+               [class.opacity-50]="!periodStart || !periodEnd">
             <div class="flex items-center space-x-3">
               <span class="text-2xl">📄</span>
               <div>
@@ -151,7 +149,7 @@
           <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
                [ngClass]="selectedInvoermethode === 'vorig_jaar' ? 'border-teal-500 bg-teal-50' : 'border-gray-300 hover:border-teal-300'"
                (click)="onInvoermethodeSelect('vorig_jaar')"
-               [class.opacity-50]="!periodConfirmed || !taxYearConfirmed">
+               [class.opacity-50]="!periodStart || !periodEnd">
             <div class="flex items-center space-x-3">
               <span class="text-2xl">🗂️</span>
               <div>
@@ -168,17 +166,38 @@
           </p>
         </div>
       </div>
+
+      <!-- Ga naar stap 2 button - full width below the invoermethode box -->
+      @if (selectedInvoermethode === 'handmatig' && canProceedToStep2()) {
+        <div class="w-full flex justify-center mt-6">
+          <button 
+            type="button"
+            class="w-full max-w-4xl px-6 py-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            (click)="goToStep(2)">
+            Ga naar stap 2
+          </button>
+        </div>
+      }
     </div>
+
+    <!-- File Selection Popup -->
+    @if (showFileSelection) {
+      <app-file-selection
+        [files]="availableFiles"
+        (fileSelected)="onFileSelected($event)"
+        (cancelled)="onFileSelectionCancelled()">
+      </app-file-selection>
+    }
   }
 
   <!-- Step 2: Vereenvoudigde aangifte invullen -->
   @if (currentStep === 2) {
-    <app-vereenvoudigde-aangifte></app-vereenvoudigde-aangifte>
+            <app-vereenvoudigde-aangifte (step3Requested)="goToStep(3)"></app-vereenvoudigde-aangifte>
   }
 
   <!-- Step 3: Voorafbetalingen optimaliseren -->
   @if (currentStep === 3) {
-    <app-voorschotten-optimaliseren></app-voorschotten-optimaliseren>
+    <app-voorschotten-optimaliseren (step4Requested)="goToStep(4)"></app-voorschotten-optimaliseren>
   }
 
   <!-- Step 4: Commit voorafbetalingen -->

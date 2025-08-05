@@ -50,12 +50,12 @@ export interface PeriodData {
   endDate: Date;
   bookYear: string;
   taxYear: string;
-  isConfirmed: boolean;
+  isConfirmed?: boolean;
 }
 
 export interface InvoermethodeData {
   selectedMethod: 'handmatig' | 'vorig_jaar';
-  isConfirmed: boolean;
+  isConfirmed?: boolean;
 }
 
 export interface Declaration {

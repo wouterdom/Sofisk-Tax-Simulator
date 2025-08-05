@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Prepayments, PrepaymentConcentration, TaxData, TaxCalculationResults } from '../services/types/tax-data.types';
 import { PrepaymentCalculationGoal } from '../services/types/tax-data.types';
@@ -18,6 +18,8 @@ import { UIClassDirective } from '../components/ui-classes.directive';
 
 })
 export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
+  @Output() step4Requested = new EventEmitter<void>();
+  
   // --- Component State ---
   public prepayments: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
   public calculationGoal: PrepaymentCalculationGoal = PREPAYMENT_GOAL.GeenVermeerdering;
@@ -207,5 +209,11 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
     );
   }
 
+  /**
+   * Emits an event to request navigation to step 4
+   */
+  goToStep4(): void {
+    this.step4Requested.emit();
+  }
 
 }

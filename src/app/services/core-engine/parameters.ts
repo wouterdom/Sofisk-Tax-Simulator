@@ -57,9 +57,15 @@ export function getTaxYearParameters(taxYear: string) {
     return { ...BASE_PARAMETERS, ...YEAR_OVERRIDES[yearKey] };
   }
   
-  // If year not found, use the most recent available year
-  const availableYears = Object.keys(YEAR_OVERRIDES).sort().reverse();
-  const fallbackYear = availableYears[0] as keyof typeof YEAR_OVERRIDES;
+  // If year not found, use the closest available year
+  const availableYears = Object.keys(YEAR_OVERRIDES).map(Number);
+  const targetYear = parseInt(taxYear);
+  
+  const closestYear = availableYears.reduce((prev, curr) => {
+    return Math.abs(curr - targetYear) < Math.abs(prev - targetYear) ? curr : prev;
+  });
+  
+  const fallbackYear = closestYear.toString() as keyof typeof YEAR_OVERRIDES;
   
   return { ...BASE_PARAMETERS, ...YEAR_OVERRIDES[fallbackYear] };
 }

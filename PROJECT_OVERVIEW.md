@@ -169,6 +169,21 @@ const taxYear = this.calculateTaxYear(data);
 const parameters = getTaxYearParameters(taxYear);
 ```
 
+**Reactive Data Flow:**
+```typescript
+// 1. User input triggers data change
+component.onPeriodChange() → service.savePeriodData()
+
+// 2. Service emits new data
+service.dataSubject.next(updatedData)
+
+// 3. Reactive calculations trigger
+service.setupReactiveCalculations() → performCalculation()
+
+// 4. Components automatically update
+component.dataSubscription → UI updates
+```
+
 ### 5.2 Calculation Core (Pure Math Layer)
 **Purpose:** Contains all Belgian corporate tax calculation logic
 
@@ -198,7 +213,99 @@ const parameters = getTaxYearParameters(taxYear);
 - Implement "Saldo Nul" calculations
 - Tax year-aware quarterly rates
 
-### 5.4 Parameters Service (Tax Year Management)
+### 5.4 Date Calculation System (Reactive Pattern)
+**Purpose:** Handles period validation and tax year calculations with instant reactivity
+
+**Key Features:**
+- **Reactive Date Processing**: Uses the same reactive pattern as the main calculation engine
+- **Instant UI Updates**: Calculated values update immediately as user types
+- **Robust Date Handling**: Supports both string and Date object types for display and storage
+- **Business Rule Implementation**: Correctly calculates boekjaar and aanslagjaar based on Belgian tax rules
+
+**Reactive Implementation Pattern:**
+```typescript
+// 1. Component subscribes to service data changes
+this.dataSubscription = this.taxDataService.data$.subscribe(data => {
+  if (data?.periodData) {
+    this.calculatedBookYear = data.periodData.bookYear || '';
+    this.calculatedTaxYear = data.periodData.taxYear || '';
+  }
+});
+
+// 2. User input triggers service update
+onPeriodChange(): void {
+  this.savePeriodData(); // Triggers reactive update
+}
+
+// 3. Service calculates and emits new data
+savePeriodData(): void {
+  // Calculate values and save to service
+  const periodData: PeriodData = {
+    startDate: startDate,
+    endDate: endDate,
+    bookYear: calculatedBookYear,
+    taxYear: calculatedTaxYear,
+  };
+  this.taxDataService.savePeriodData(periodData); // Triggers dataSubject.next()
+}
+```
+
+**Business Rules Implementation:**
+```typescript
+// Tax Year Calculation (Aanslagjaar)
+public calculateTaxYear(periodEndDate: Date): string {
+  const endYear = periodEndDate.getFullYear();
+  const endMonth = periodEndDate.getMonth(); // 0-11
+  const endDay = periodEndDate.getDate();
+  
+  // If period ends on December 31st → Tax Year = following year
+  if (endMonth === 11 && endDay === 31) {
+    return (endYear + 1).toString();
+  }
+  
+  // Otherwise → Tax Year = end year
+  return endYear.toString();
+}
+
+// Book Year Calculation (Boekjaar)
+if (startYear === endYear) {
+  calculatedBookYear = startYear.toString(); // Same year: "2023"
+} else {
+  calculatedBookYear = `${startYear}/${endYear}`; // Multi-year: "2023/2024"
+}
+```
+
+**Example Calculations:**
+- **Period**: 01-01-2023 to 31-12-2023
+  - **Boekjaar**: 2023
+  - **Aanslagjaar**: 2024 (ends on December 31st)
+- **Period**: 01-01-2024 to 30-12-2024
+  - **Boekjaar**: 2024
+  - **Aanslagjaar**: 2024 (doesn't end on December 31st)
+- **Period**: 01-07-2024 to 30-06-2025
+  - **Boekjaar**: 2024/2025
+  - **Aanslagjaar**: 2025
+
+**Parameter Validation:**
+- **Supported Years**: 2024, 2025, 2026 (have specific tax parameters)
+- **Unsupported Years**: Any other year (e.g., 2023, 2027, 2030)
+- **Warning Message**: Shows when unsupported years are used
+- **Fallback Logic**: Uses closest available year's parameters (not just most recent)
+- **Example Warning**: "Let op: Voor aanslagjaar 2023 zijn geen specifieke parameters beschikbaar. Parameters van 2024 worden gebruikt."
+- **Fallback Examples**: 
+  - 2023 → uses 2024 parameters (closest)
+  - 2027 → uses 2026 parameters (closest)
+  - 2030 → uses 2026 parameters (closest)
+
+**Technical Implementation Details:**
+- **Display Values**: Kept as strings for HTML date inputs
+- **Storage Values**: Converted to Date objects for service storage
+- **Event Handling**: Uses `(input)` events for instant reactivity
+- **Type Safety**: Supports `Date | string | null` for flexible handling
+- **Validation**: Robust validation prevents invalid date storage
+- **Parameter Validation**: Warns when tax year doesn't have specific parameters (2024-2026 only)
+
+### 5.5 Parameters Service (Tax Year Management)
 **Purpose:** Manages tax year-specific parameters and constants
 
 **Key Features:**
