@@ -5,13 +5,28 @@ import { getDefaultTaxData } from '../../layout-builders/Vereenvoudigde-aangifte
 import { buildCalculationDetail } from '../../layout-builders/calculation-detail.builder';
 import { buildSimplifiedReturn } from '../../layout-builders/Key-values-Cards';
 import { runCoreEngine, CoreEngineInput, CoreEngineOutput } from './calculation-core';
-import { TAX_CONSTANTS } from './parameters';
+import { 
+  TAX_CONSTANTS, 
+  getTaxYearParameters, 
+  getQuarterlyRates, 
+  getVermeerderingsPercentage,
+  getReducedRate,
+  getStandardRate,
+  getReducedRateThreshold,
+  getKorfbeperkingThreshold,
+  getKorfbeperkingRate,
+  getDeMinimisThreshold,
+  getDeMinimisPercentage,
+  getRequiredPrepaymentsPercentage
+} from './parameters';
 import { 
   DeclarationSection, 
   Prepayments, 
   PrepaymentConcentration,
   TaxCalculationResults,
-  TaxData
+  TaxData,
+  PeriodData,
+  InvoermethodeData
 } from '../types/tax-data.types';
 import { PrepaymentService } from './prepayment.service';
 
@@ -70,7 +85,8 @@ export class MainCalculationEngineService {
       isSmallCompanyFirstThreeYears: data.isSmallCompanyFirstThreeYears,
       prepaymentCalculationGoal: data.prepaymentCalculationGoal,
       prepaymentConcentration: data.prepaymentConcentration,
-      prepaymentStrategy: data.prepaymentStrategy
+      prepaymentStrategy: data.prepaymentStrategy,
+      taxYear: this.getCurrentTaxYear()
     };
     const core = runCoreEngine(coreInput, this.prepaymentService);
 
@@ -95,10 +111,11 @@ export class MainCalculationEngineService {
     // Calculate final tax payable based on the prepayments used for this step
     // For Step 3, we need to recalculate using suggested prepayments
     // For Step 2, we need to recalculate using current prepayments
+    const currentTaxYearParams = this.getCurrentTaxYearParameters();
     const finalTaxPayableForStep = this.getCurrentStep() === 3 
-      ? core.saldo2 - (core.suggestedPrepayments.va1 + core.suggestedPrepayments.va2 + core.suggestedPrepayments.va3 + core.suggestedPrepayments.va4) + detail.vermeerderingTotal + (core.code1508 * TAX_CONSTANTS.LIQUIDATION_RESERVE_RATE)
+      ? core.saldo2 - (core.suggestedPrepayments.va1 + core.suggestedPrepayments.va2 + core.suggestedPrepayments.va3 + core.suggestedPrepayments.va4) + detail.vermeerderingTotal + (core.code1508 * currentTaxYearParams.LIQUIDATION_RESERVE_RATE)
       : this.getCurrentStep() === 2
-        ? core.saldo2 - (data.prepayments.va1 + data.prepayments.va2 + data.prepayments.va3 + data.prepayments.va4) + detail.vermeerderingTotal + (core.code1508 * TAX_CONSTANTS.LIQUIDATION_RESERVE_RATE)
+        ? core.saldo2 - (data.prepayments.va1 + data.prepayments.va2 + data.prepayments.va3 + data.prepayments.va4) + detail.vermeerderingTotal + (core.code1508 * currentTaxYearParams.LIQUIDATION_RESERVE_RATE)
         : core.finalTaxPayable;
 
     const simplified = buildSimplifiedReturn({
@@ -163,6 +180,161 @@ export class MainCalculationEngineService {
     if (currentData) {
       console.log('Running initial calculation with current data:', currentData);
       this.performCalculation(currentData);
+    }
+  }
+
+  // =========================================
+  // Tax Year Management
+  // =========================================
+
+  /**
+   * Calculate tax year based on period end date
+   * Rules:
+   * - If period ends on December 31st of a year → Tax Year = following year
+   * - If period ends on any other date → Tax Year = end year
+   */
+  public calculateTaxYear(periodEndDate: Date): string {
+    const endYear = periodEndDate.getFullYear();
+    const endMonth = periodEndDate.getMonth(); // 0-11
+    const endDay = periodEndDate.getDate();
+    
+    // Check if period ends on December 31st
+    if (endMonth === 11 && endDay === 31) {
+      return (endYear + 1).toString();
+    }
+    
+    return endYear.toString();
+  }
+
+  /**
+   * Get current tax year from stored data
+   */
+  public getCurrentTaxYear(): string {
+    const data = this.getData();
+    return data?.periodData?.taxYear || '2025';
+  }
+
+  /**
+   * Get tax year parameters for current tax year
+   */
+  public getCurrentTaxYearParameters() {
+    const taxYear = this.getCurrentTaxYear();
+    return getTaxYearParameters(taxYear);
+  }
+
+  /**
+   * Get quarterly rates for current tax year
+   */
+  public getQuarterlyRates(): any {
+    const taxYear = this.getCurrentTaxYear();
+    return getQuarterlyRates(taxYear);
+  }
+
+  /**
+   * Get vermeerdering percentage for current tax year
+   */
+  public getVermeerderingsPercentage(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getVermeerderingsPercentage(taxYear);
+  }
+
+  /**
+   * Get reduced rate for current tax year
+   */
+  public getReducedRate(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getReducedRate(taxYear);
+  }
+
+  /**
+   * Get standard rate for current tax year
+   */
+  public getStandardRate(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getStandardRate(taxYear);
+  }
+
+  /**
+   * Get reduced rate threshold for current tax year
+   */
+  public getReducedRateThreshold(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getReducedRateThreshold(taxYear);
+  }
+
+  /**
+   * Get korfbeperking threshold for current tax year
+   */
+  public getKorfbeperkingThreshold(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getKorfbeperkingThreshold(taxYear);
+  }
+
+  /**
+   * Get korfbeperking rate for current tax year
+   */
+  public getKorfbeperkingRate(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getKorfbeperkingRate(taxYear);
+  }
+
+  /**
+   * Get de minimis threshold for current tax year
+   */
+  public getDeMinimisThreshold(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getDeMinimisThreshold(taxYear);
+  }
+
+  /**
+   * Get de minimis percentage for current tax year
+   */
+  public getDeMinimisPercentage(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getDeMinimisPercentage(taxYear);
+  }
+
+  /**
+   * Get required prepayments percentage for current tax year
+   */
+  public getRequiredPrepaymentsPercentage(): number {
+    const taxYear = this.getCurrentTaxYear();
+    return getRequiredPrepaymentsPercentage(taxYear);
+  }
+
+  // =========================================
+  // Period and Invoermethode Management
+  // =========================================
+
+  /**
+   * Save period data
+   */
+  public savePeriodData(periodData: PeriodData): void {
+    const currentData = this.getData();
+    if (currentData) {
+      const updatedData: TaxData = {
+        ...currentData,
+        periodData,
+        lastUpdated: new Date()
+      };
+      this.dataSubject.next(updatedData);
+      this.saveData(updatedData);
+    }
+  }
+
+  /**
+   * Save invoermethode data
+   */
+  public saveInvoermethodeData(invoermethodeData: InvoermethodeData): void {
+    const currentData = this.getData();
+    if (currentData) {
+      const updatedData: TaxData = {
+        ...currentData,
+        invoermethodeData,
+        lastUpdated: new Date()
+      };
+      this.dataSubject.next(updatedData);
+      this.saveData(updatedData);
     }
   }
 

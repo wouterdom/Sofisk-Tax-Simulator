@@ -2,7 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { Prepayments, PrepaymentCalculationGoal, PrepaymentConcentration, PrepaymentStrategy } from '@app/services/types/tax-data.types';
 import { LoggingService } from '@app/services/utils/logging.service';
 import { TaxError, TaxErrorCodes } from '@app/services/types/tax-error';
-import { TAX_CONSTANTS } from './parameters';
+import { 
+  TAX_CONSTANTS, 
+  getTaxYearParameters,
+  getQuarterlyRates,
+  getVermeerderingsPercentage
+} from './parameters';
 
 @Injectable({
   providedIn: 'root'
@@ -27,7 +32,8 @@ export class PrepaymentService {
     taxIncreaseBase: number,
     separateAssessment: number,
     isSmallCompany: boolean,
-    concentration: PrepaymentConcentration = 'spread'
+    concentration: PrepaymentConcentration = 'spread',
+    taxYear: string = '2025'
   ): Prepayments {
     try {
       this.logger.debug('Calculating suggested prepayments', {
@@ -52,32 +58,35 @@ export class PrepaymentService {
 
       let result: Prepayments;
 
+      const params = getTaxYearParameters(taxYear);
+      const quarterlyRates = getQuarterlyRates(taxYear);
+      
       switch (goal) {
         case 'GeenVermeerdering': {
           // Calculate base increase amount (9% of tax increase base)
-          const baseVermeerdering = Math.max(0, taxIncreaseBase * TAX_CONSTANTS.STANDARD_INCREASE_RATE); // 0.09 (9%)
+          const baseVermeerdering = Math.max(0, taxIncreaseBase * params.STANDARD_INCREASE_RATE); // 0.09 (9%)
           
           switch (concentration) {
             case 'q1':
               // All prepayment in Q1: baseVermeerdering / 12% = baseVermeerdering / 0.12
-              result = this.clampPrepayments({ va1: baseVermeerdering / TAX_CONSTANTS.QUARTERLY_RATES.Q1, va2: 0, va3: 0, va4: 0 });
+              result = this.clampPrepayments({ va1: baseVermeerdering / quarterlyRates.Q1, va2: 0, va3: 0, va4: 0 });
               break;
             case 'q2':
               // All prepayment in Q2: baseVermeerdering / 10% = baseVermeerdering / 0.10
-              result = this.clampPrepayments({ va1: 0, va2: baseVermeerdering / TAX_CONSTANTS.QUARTERLY_RATES.Q2, va3: 0, va4: 0 });
+              result = this.clampPrepayments({ va1: 0, va2: baseVermeerdering / quarterlyRates.Q2, va3: 0, va4: 0 });
               break;
             case 'q3':
               // All prepayment in Q3: baseVermeerdering / 8% = baseVermeerdering / 0.08
-              result = this.clampPrepayments({ va1: 0, va2: 0, va3: baseVermeerdering / TAX_CONSTANTS.QUARTERLY_RATES.Q3, va4: 0 });
+              result = this.clampPrepayments({ va1: 0, va2: 0, va3: baseVermeerdering / quarterlyRates.Q3, va4: 0 });
               break;
             case 'q4':
               // All prepayment in Q4: baseVermeerdering / 6% = baseVermeerdering / 0.06
-              result = this.clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: baseVermeerdering / TAX_CONSTANTS.QUARTERLY_RATES.Q4 });
+              result = this.clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: baseVermeerdering / quarterlyRates.Q4 });
               break;
             case 'spread':
             default: {
               // Spread evenly across all quarters: baseVermeerdering / 36% = baseVermeerdering / 0.36
-              const p = baseVermeerdering / TAX_CONSTANTS.QUARTERLY_RATES.TOTAL; // 0.36 (36% total)
+              const p = baseVermeerdering / quarterlyRates.TOTAL; // 0.36 (36% total)
               result = this.clampPrepayments({ va1: p, va2: p, va3: p, va4: p });
             }
           }
@@ -88,7 +97,7 @@ export class PrepaymentService {
           const saldo2 = taxIncreaseBase;
           const result1508 = separateAssessment;
           // Calculate base increase amount (9% of saldo2)
-          const mBase = Math.max(0, saldo2 * TAX_CONSTANTS.STANDARD_INCREASE_RATE); // 0.09 (9%)
+          const mBase = Math.max(0, saldo2 * params.STANDARD_INCREASE_RATE); // 0.09 (9%)
 
           /**
            * Solves for the prepayment amount that results in zero tax balance
@@ -106,32 +115,32 @@ export class PrepaymentService {
           switch (concentration) {
             case 'q1': {
               // All prepayment in Q1 using 12% rate
-              const P = solvePrepayment(TAX_CONSTANTS.QUARTERLY_RATES.Q1); // 0.12 (12%)
+              const P = solvePrepayment(quarterlyRates.Q1); // 0.12 (12%)
               result = this.clampPrepayments({ va1: P, va2: 0, va3: 0, va4: 0 });
               break;
             }
             case 'q2': {
               // All prepayment in Q2 using 10% rate
-              const P = solvePrepayment(TAX_CONSTANTS.QUARTERLY_RATES.Q2); // 0.10 (10%)
+              const P = solvePrepayment(quarterlyRates.Q2); // 0.10 (10%)
               result = this.clampPrepayments({ va1: 0, va2: P, va3: 0, va4: 0 });
               break;
             }
             case 'q3': {
               // All prepayment in Q3 using 8% rate
-              const P = solvePrepayment(TAX_CONSTANTS.QUARTERLY_RATES.Q3); // 0.08 (8%)
+              const P = solvePrepayment(quarterlyRates.Q3); // 0.08 (8%)
               result = this.clampPrepayments({ va1: 0, va2: 0, va3: P, va4: 0 });
               break;
             }
             case 'q4': {
               // All prepayment in Q4 using 6% rate
-              const P = solvePrepayment(TAX_CONSTANTS.QUARTERLY_RATES.Q4); // 0.06 (6%)
+              const P = solvePrepayment(quarterlyRates.Q4); // 0.06 (6%)
               result = this.clampPrepayments({ va1: 0, va2: 0, va3: 0, va4: P });
               break;
             }
             case 'spread':
             default: {
               // Spread across all quarters using total rate of 36%
-              const dRateTotal = TAX_CONSTANTS.QUARTERLY_RATES.TOTAL; // 0.36 (36% total)
+              const dRateTotal = quarterlyRates.TOTAL; // 0.36 (36% total)
               const T = solvePrepayment(dRateTotal);
               const P = T / 4; // Divide total by 4 quarters
               result = this.clampPrepayments({ va1: P, va2: P, va3: P, va4: P });

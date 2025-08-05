@@ -1,4 +1,9 @@
-import { TAX_CONSTANTS, FIELD_CODES, SECTION_INDICES } from './parameters';
+import { 
+  TAX_CONSTANTS, 
+  FIELD_CODES, 
+  SECTION_INDICES,
+  getTaxYearParameters
+} from './parameters';
 import { 
   TaxData, 
   Prepayments, 
@@ -11,10 +16,11 @@ import { PrepaymentService } from './prepayment.service';
 /**
  * Applies the de minimis rule to determine if a vermeerdering amount should be zero
  */
-function applyDeMinimisRule(vermeerderingAmount: number, taxBase: number): number {
+function applyDeMinimisRule(vermeerderingAmount: number, taxBase: number, taxYear: string = '2025'): number {
+  const params = getTaxYearParameters(taxYear);
   const deMinimisThreshold = Math.max(
-    TAX_CONSTANTS.DE_MINIMIS_THRESHOLD, 
-    taxBase * TAX_CONSTANTS.DE_MINIMIS_PERCENTAGE
+    params.DE_MINIMIS_THRESHOLD, 
+    taxBase * params.DE_MINIMIS_PERCENTAGE
   );
   return vermeerderingAmount <= deMinimisThreshold ? 0 : vermeerderingAmount;
 }
@@ -22,9 +28,10 @@ function applyDeMinimisRule(vermeerderingAmount: number, taxBase: number): numbe
 /**
  * Calculates the korfbeperking (basket limitation) for section 6 deductions
  */
-function calculateKorfbeperking(grondslagVoorBerekeningKorf: number): number {
-  return Math.min(grondslagVoorBerekeningKorf, TAX_CONSTANTS.KORFBEPERKING_THRESHOLD) +
-         Math.max(0, grondslagVoorBerekeningKorf - TAX_CONSTANTS.KORFBEPERKING_THRESHOLD) * TAX_CONSTANTS.KORFBEPERKING_RATE;
+function calculateKorfbeperking(grondslagVoorBerekeningKorf: number, taxYear: string = '2025'): number {
+  const params = getTaxYearParameters(taxYear);
+  return Math.min(grondslagVoorBerekeningKorf, params.KORFBEPERKING_THRESHOLD) +
+         Math.max(0, grondslagVoorBerekeningKorf - params.KORFBEPERKING_THRESHOLD) * params.KORFBEPERKING_RATE;
 }
 
 export interface CoreEngineInput {
@@ -35,6 +42,7 @@ export interface CoreEngineInput {
   prepaymentCalculationGoal: PrepaymentCalculationGoal;
   prepaymentConcentration: PrepaymentConcentration;
   prepaymentStrategy: PrepaymentStrategy;
+  taxYear?: string; // Optional tax year parameter
 }
 
 export interface CoreEngineOutput {
@@ -90,6 +98,10 @@ export interface CoreEngineOutput {
 }
 
 export function runCoreEngine(input: CoreEngineInput, prepaymentService: PrepaymentService): CoreEngineOutput {
+  // Get tax year parameters
+  const taxYear = input.taxYear || '2025';
+  const params = getTaxYearParameters(taxYear);
+  
   // =========================================
   // Section Totals & Intermediate Calculations
   // =========================================
@@ -117,7 +129,7 @@ export function runCoreEngine(input: CoreEngineInput, prepaymentService: Prepaym
   const resterendResultaat = Math.max(0, resultaatVanHetBelastbareTijdperkTotal - bestanddelenVhResultaatAftrekbeperking);
   const grondslagVoorBerekeningKorf = Math.max(0, resterendResultaat - aftrekkenVanDeResterendeWinstTotal);
 
-  const korfbeperking = calculateKorfbeperking(grondslagVoorBerekeningKorf);
+  const korfbeperking = calculateKorfbeperking(grondslagVoorBerekeningKorf, taxYear);
   const limitedAftrekkenResterendeWinstKorfbeperkingTotal = Math.min(aftrekkenResterendeWinstKorfbeperkingTotal, korfbeperking);
 
   const belastbareWinstGewoonTariefBeforeConstraint = Math.max(0, grondslagVoorBerekeningKorf - limitedAftrekkenResterendeWinstKorfbeperkingTotal);
@@ -130,14 +142,14 @@ export function runCoreEngine(input: CoreEngineInput, prepaymentService: Prepaym
   let reducedRateBase = 0;
   let standardRateBase = 0;
   if (input.canUseReducedRate) {
-    reducedRateBase = Math.min(belastbareWinstGewoonTarief, TAX_CONSTANTS.REDUCED_RATE_THRESHOLD);
-    standardRateBase = Math.max(0, belastbareWinstGewoonTarief - TAX_CONSTANTS.REDUCED_RATE_THRESHOLD);
+    reducedRateBase = Math.min(belastbareWinstGewoonTarief, params.REDUCED_RATE_THRESHOLD);
+    standardRateBase = Math.max(0, belastbareWinstGewoonTarief - params.REDUCED_RATE_THRESHOLD);
   } else {
     reducedRateBase = 0;
     standardRateBase = belastbareWinstGewoonTarief;
   }
 
-  const calculationTotal = (reducedRateBase * TAX_CONSTANTS.REDUCED_RATE) + (standardRateBase * TAX_CONSTANTS.STANDARD_RATE);
+  const calculationTotal = (reducedRateBase * params.REDUCED_RATE) + (standardRateBase * params.STANDARD_RATE);
   const saldo1 = calculationTotal;
   const limitedCode1830 = Math.min(code1830, saldo1);
   const saldo2 = saldo1 - limitedCode1830 - code1840;
@@ -155,29 +167,29 @@ export function runCoreEngine(input: CoreEngineInput, prepaymentService: Prepaym
   if (input.isSmallCompanyFirstThreeYears) {
     vermeerderingTotal = 0;
   } else {
-    const rawVermeerdering = Math.max(0, saldo2 * TAX_CONSTANTS.STANDARD_INCREASE_RATE);
+    const rawVermeerdering = Math.max(0, saldo2 * params.STANDARD_INCREASE_RATE);
     berekeningVermeerdering = rawVermeerdering;
 
     const va1 = input.prepayments.va1;
     const va2 = input.prepayments.va2;
     const va3 = input.prepayments.va3;
     const va4 = input.prepayments.va4;
-    const deduction1 = -(va1 * TAX_CONSTANTS.QUARTERLY_RATES.Q1);
-    const deduction2 = -(va2 * TAX_CONSTANTS.QUARTERLY_RATES.Q2);
-    const deduction3 = -(va3 * TAX_CONSTANTS.QUARTERLY_RATES.Q3);
-    const deduction4 = -(va4 * TAX_CONSTANTS.QUARTERLY_RATES.Q4);
+    const deduction1 = -(va1 * params.QUARTERLY_RATES.Q1);
+    const deduction2 = -(va2 * params.QUARTERLY_RATES.Q2);
+    const deduction3 = -(va3 * params.QUARTERLY_RATES.Q3);
+    const deduction4 = -(va4 * params.QUARTERLY_RATES.Q4);
     const totalAftrekVA = deduction1 + deduction2 + deduction3 + deduction4;
     totaalAftrekVA = totalAftrekVA;
     aftrekDoorVoorafbetalingen = totalAftrekVA;
 
     vermeerderingBeforeDeMinimis = Math.max(0, rawVermeerdering + totalAftrekVA);
-    vermeerderingTotal = applyDeMinimisRule(vermeerderingBeforeDeMinimis, saldo2);
+    vermeerderingTotal = applyDeMinimisRule(vermeerderingBeforeDeMinimis, saldo2, taxYear);
     deMinimisApplied = vermeerderingTotal === 0 && vermeerderingBeforeDeMinimis > 0;
   }
 
-  const taxAtReducedRate = reducedRateBase * TAX_CONSTANTS.REDUCED_RATE;
-  const taxAtStandardRate = standardRateBase * TAX_CONSTANTS.STANDARD_RATE;
-  const separateAssessment = code1508 * TAX_CONSTANTS.LIQUIDATION_RESERVE_RATE;
+  const taxAtReducedRate = reducedRateBase * params.REDUCED_RATE;
+  const taxAtStandardRate = standardRateBase * params.STANDARD_RATE;
+  const separateAssessment = code1508 * params.LIQUIDATION_RESERVE_RATE;
   const nonRefundableWithholding = -limitedCode1830;
   const refundableWithholding = -code1840;
 
@@ -187,7 +199,7 @@ export function runCoreEngine(input: CoreEngineInput, prepaymentService: Prepaym
   const taxableIncome = belastbareWinstGewoonTarief;
   const totalTaxLiability = finalTaxPayable;
   const finalTaxDue = totalTaxLiability;
-  const requiredPrepayments = totalTaxLiability * TAX_CONSTANTS.REQUIRED_PREPAYMENTS_PERCENTAGE;
+  const requiredPrepayments = totalTaxLiability * params.REQUIRED_PREPAYMENTS_PERCENTAGE;
   const currentPrepayments = prepaymentService.calculateTotalPrepayments(input.prepayments);
   const shortfall = Math.max(0, requiredPrepayments - currentPrepayments);
 
@@ -197,7 +209,8 @@ export function runCoreEngine(input: CoreEngineInput, prepaymentService: Prepaym
     saldo2,
     separateAssessment,
     input.isSmallCompanyFirstThreeYears,
-    input.prepaymentConcentration
+    input.prepaymentConcentration,
+    taxYear
   );
 
   return {

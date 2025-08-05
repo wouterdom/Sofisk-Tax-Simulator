@@ -44,6 +44,30 @@ export interface CalculationRow {
   result: number;
 }
 
+// New interfaces for enhanced Step 1 and Step 4
+export interface PeriodData {
+  startDate: Date;
+  endDate: Date;
+  bookYear: string;
+  taxYear: string;
+  isConfirmed: boolean;
+}
+
+export interface InvoermethodeData {
+  selectedMethod: 'handmatig' | 'vorig_jaar';
+  isConfirmed: boolean;
+}
+
+export interface Declaration {
+  id: string;
+  name: string;
+  assessmentYear: string;
+  periodStart: Date;
+  periodEnd: Date;
+  status: 'draft' | 'submitted' | 'processed';
+  lastModified: Date;
+}
+
 export interface TaxCalculationResults {
   // Section totals (actual declaration sections)
   resultaatVanHetBelastbareTijdperkTotal: number;
@@ -121,4 +145,7 @@ export interface TaxData {
   canUseReducedRate: boolean;
   isSmallCompanyFirstThreeYears: boolean;
   lastUpdated: Date;
+  // New fields for enhanced functionality
+  periodData?: PeriodData;
+  invoermethodeData?: InvoermethodeData;
 }

@@ -26,10 +26,7 @@ interface DeclarationYear {
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   lastSaved: Date = new Date();
-  showSaveDialog = false;
   showResetDialog = false;
-  canCommit = false;
-  selectedDeclaration: Declaration | null = null;
   declarationYears: DeclarationYear[] = [];
   showSuccessBanner = false;
   successMessage = '';
@@ -45,8 +42,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.dataSubscription = this.taxDataService.data$.subscribe(data => {
       if (data) {
         this.lastSaved = data.lastUpdated;
-        // Enable commit button if we're on step 2 or 3 and have data
-        this.canCommit = this.isOnCommitableStep() && this.hasDataToCommit();
       }
     });
   }
@@ -105,42 +100,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     ];
   }
 
-  private isOnCommitableStep(): boolean {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const currentStep = localStorage.getItem('sofisk_current_step');
-      return currentStep === '2' || currentStep === '3';
-    }
-    return false;
-  }
-
-  private hasDataToCommit(): boolean {
-    // Check if there's meaningful data to commit
-    // This is a simplified check - you might want to make this more sophisticated
-    return true; // For now, always allow commit if on correct step
-  }
-
-  commitData(): void {
-    this.showSaveDialog = true;
-    this.selectedDeclaration = null; // Reset selection when opening dialog
-  }
-
-  selectDeclaration(declaration: Declaration): void {
-    this.selectedDeclaration = declaration;
-  }
-
-  saveData(): void {
-    if (this.selectedDeclaration) {
-      // TODO: Implement actual save functionality
-      console.log('Committing data to declaration:', this.selectedDeclaration);
-      console.log('Prepayment data to commit:', this.taxDataService.getData());
-      
-      // Show success banner instead of alert
-      this.showSuccessMessage(`Data successfully committed to declaration: ${this.selectedDeclaration.name} (${this.selectedDeclaration.assessmentYear})`);
-    }
-    this.showSaveDialog = false;
-    this.selectedDeclaration = null;
-  }
-
   showSuccessMessage(message: string): void {
     this.successMessage = message;
     this.showSuccessBanner = true;
@@ -160,11 +119,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       clearTimeout(this.successBannerTimer);
       this.successBannerTimer = undefined;
     }
-  }
-
-  cancelSave(): void {
-    this.showSaveDialog = false;
-    this.selectedDeclaration = null;
   }
 
   showResetConfirmation(): void {

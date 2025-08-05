@@ -5,9 +5,10 @@
 The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimate corporate tax liability and optimize quarterly prepayments (`voorafbetalingen`) to avoid penalties.
 
 **Primary Goals:**
-- Real-time corporate tax estimation
+- Real-time corporate tax estimation with multi-year support (2024-2026)
 - Prepayment optimization to minimize penalties (`vermeerdering`)
 - User-friendly interface for accountants, tax advisors, and business owners
+- Comprehensive commit functionality for tax declarations
 
 **Target Users:**
 - Accountants and Tax Advisors
@@ -18,10 +19,13 @@ The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimat
 
 ## 2. Core Features
 
-### 2.1 Three-Step Workflow
+### 2.1 Four-Step Workflow
 
-**Step 1: Input Method Selection**
+**Step 1: Input Method Selection & Period Validation**
 - Manual entry or import from previous year
+- Period and tax year confirmation and validation
+- Robust navigation logic with step prerequisites
+- Tax year-specific parameter management
 
 **Step 2: Vereenvoudigde Aangifte (Simplified Declaration)**
 - Input financial data across 9 declaration sections
@@ -34,11 +38,25 @@ The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimat
 - Optimization goals: Avoid Penalties, Saldo Nul, Custom Strategy
 - Shows calculation breakdown using suggested prepayment values
 - Always displays original values for comparison
+- Save confirmation dialog when navigating away with changes
+
+**Step 4: Voorafbetalingen Committeren (Commit Prepayments)**
+- Comprehensive tax overview with prepayment breakdown
+- Declaration selection and commit functionality
+- Persistent committed state display
+- Integration with core calculation engine for consistent data
 
 ### 2.2 Data Management
 - Automatic localStorage persistence
 - Reset to defaults, clear data, commit simulation values
 - Step persistence across browser sessions
+- Tax year-specific data structures and parameters
+
+### 2.3 Enhanced Navigation
+- Step-by-step progression with validation
+- Visual cues for blocked steps
+- Save confirmation for unsaved changes
+- Flexible navigation after Step 1 completion
 
 ---
 
@@ -49,7 +67,8 @@ The system uses a **three-layer architecture** with clear separation of concerns
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    UI Components                            │
-│  (VereenvoudigdeAangifte, VoorschottenOptimaliseren)       │
+│  (Invoermethode, VereenvoudigdeAangifte,                   │
+│   VoorschottenOptimaliseren, CommitVoorafbetalingen)       │
 └─────────────────────┬───────────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────────┐
@@ -58,6 +77,7 @@ The system uses a **three-layer architecture** with clear separation of concerns
 │  • State Management (RxJS BehaviorSubjects)                │
 │  • Data Persistence (localStorage)                         │
 │  • Step Context Management                                 │
+│  • Tax Year Parameter Management                           │
 │  • Coordinates Core Engine & Layout Builders               │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -65,6 +85,7 @@ The system uses a **three-layer architecture** with clear separation of concerns
 │                    Core Engine                              │
 │  • Pure Mathematical Calculations                           │
 │  • Business Logic Implementation                            │
+│  • Tax Year-Aware Calculations                              │
 │  • No UI Dependencies                                       │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -87,7 +108,7 @@ src/app/
 │   │   ├── calculation-core.ts         # Pure mathematical calculations
 │   │   ├── main-calculation-engine.service.ts  # Orchestration service
 │   │   ├── prepayment.service.ts       # Prepayment business logic
-│   │   └── parameters.ts               # Calculation parameters
+│   │   └── parameters.ts               # Tax year parameters & constants
 │   ├── types/                          # TypeScript type definitions
 │   │   ├── tax-data.types.ts           # Core data interfaces
 │   │   └── tax-error.ts                # Error handling types
@@ -100,9 +121,10 @@ src/app/
 │   ├── Key-values-Cards.ts             # Simplified return cards
 │   └── Vereenvoudigde-aangifte.ts      # Declaration structure
 ├── workflow/                           # Main application views
-│   ├── Invoermethode.html/.ts          # Step 1: Input method selection
+│   ├── Invoermethode.html/.ts          # Step 1: Input method & period validation
 │   ├── vereenvoudigde-aangifte.component.html/.ts  # Step 2: Declaration
-│   └── voorschotten-optimaliseren.component.html/.ts  # Step 3: Optimization
+│   ├── voorschotten-optimaliseren.component.html/.ts  # Step 3: Optimization
+│   └── commit-voorafbetalingen.component.html/.ts  # Step 4: Commit functionality
 ├── components/                         # Reusable UI components
 │   ├── base-tax.component.ts           # Base tax calculation component
 │   ├── calculation-details.component.ts # Calculation breakdown display
@@ -110,9 +132,10 @@ src/app/
 │   ├── loading-indicator.component.ts  # Loading state indicator
 │   ├── prepayment.component.ts         # Prepayment input component
 │   └── ui-classes.directive.ts         # Dynamic CSS class management
-├── header/                             # Application header
+├── header/                             # Application header (simplified)
 └── unit-tests/                         # Unit tests (separate directory)
-    └── services/                       # Service-specific tests
+    ├── services/                       # Service-specific tests
+    └── components/                     # Component-specific tests
 ```
 
 ---
@@ -126,6 +149,7 @@ src/app/
 - **State Management**: Uses RxJS BehaviorSubjects for reactive data flow
 - **Data Persistence**: Handles localStorage operations
 - **Step Context**: Manages which prepayment values to use (current vs. suggested)
+- **Tax Year Management**: Dynamic parameter retrieval for 2024-2026
 - **Core Engine Coordination**: Calls the core engine with appropriate inputs
 - **Layout Builder Coordination**: Provides data to UI presentation builders
 
@@ -138,6 +162,13 @@ const prepaymentsForDetail = this.getCurrentStep() === 3
   : data.prepayments;
 ```
 
+**Tax Year Logic:**
+```typescript
+// Dynamic parameter retrieval based on calculated tax year
+const taxYear = this.calculateTaxYear(data);
+const parameters = getTaxYearParameters(taxYear);
+```
+
 ### 5.2 Calculation Core (Pure Math Layer)
 **Purpose:** Contains all Belgian corporate tax calculation logic
 
@@ -146,6 +177,7 @@ const prepaymentsForDetail = this.getCurrentStep() === 3
 - No side effects or UI dependencies
 - Easily testable and reusable
 - Implements official Belgian tax rules
+- Tax year-aware calculations
 
 **Calculation Flow:**
 1. Section aggregation (sums fields within sections)
@@ -153,7 +185,7 @@ const prepaymentsForDetail = this.getCurrentStep() === 3
 3. Korfbeperking application (basket limitation rules)
 4. Tax rate application (20% reduced + 25% standard)
 5. Voorheffingen processing (prepayments)
-6. Vermeerdering calculation (9% penalty with de-minimis rules)
+6. Vermeerdering calculation (dynamic penalty rates with de-minimis rules)
 7. Prepayment optimization
 
 ### 5.3 PrepaymentService (Business Logic)
@@ -164,8 +196,18 @@ const prepaymentsForDetail = this.getCurrentStep() === 3
 - Suggest optimal prepayment strategies
 - Handle different concentration methods (spread, Q1-Q4)
 - Implement "Saldo Nul" calculations
+- Tax year-aware quarterly rates
 
-### 5.4 Layout Builders (UI Presentation)
+### 5.4 Parameters Service (Tax Year Management)
+**Purpose:** Manages tax year-specific parameters and constants
+
+**Key Features:**
+- Dynamic parameter retrieval for 2024-2026
+- Quarterly rates management
+- Vermeerdering percentage management
+- Step configuration constants
+
+### 5.5 Layout Builders (UI Presentation)
 **Purpose:** Transform calculation results into display-ready formats
 
 **Components:**
@@ -173,7 +215,7 @@ const prepaymentsForDetail = this.getCurrentStep() === 3
 - **Key-Values Cards Builder**: Creates simplified return cards
 - **Vereenvoudigde Aangifte Builder**: Provides default declaration structure
 
-### 5.5 Utility Services
+### 5.6 Utility Services
 **Purpose:** Provide common functionality across the application
 
 **Services:**
@@ -196,14 +238,22 @@ private isLoadingSubject: BehaviorSubject<boolean>;
 ### 6.2 Data Flow Process
 1. **User Input** → Components call service methods
 2. **State Update** → Service updates BehaviorSubject
-3. **Core Engine Call** → Service calls `runCoreEngine()` with current data
-4. **Layout Building** → Service calls layout builders with core results
-5. **UI Update** → Components automatically update via RxJS subscriptions
+3. **Tax Year Calculation** → Service determines applicable tax year
+4. **Core Engine Call** → Service calls `runCoreEngine()` with current data and tax year
+5. **Layout Building** → Service calls layout builders with core results
+6. **UI Update** → Components automatically update via RxJS subscriptions
 
 ### 6.3 Step-Aware Calculations
 - **Step 2**: Uses current prepayment values for real-time editing
 - **Step 3**: Uses suggested prepayment values for simulation
+- **Step 4**: Displays comprehensive tax overview with commit functionality
 - Always shows original values for comparison in Step 3
+
+### 6.4 Navigation Flow
+- **Step 1**: Validates period and tax year before allowing progression
+- **Step 2-4**: Flexible navigation after Step 1 completion
+- **Step 3**: Save confirmation dialog when navigating away with changes
+- **Step 4**: Persistent committed state management
 
 ---
 
@@ -224,38 +274,48 @@ npm start  # Runs on localhost:4200
 1. `services/core-engine/main-calculation-engine.service.ts` - Start here
 2. `services/core-engine/calculation-core.ts` - Pure calculation logic
 3. `services/core-engine/prepayment.service.ts` - Prepayment business logic
-4. `services/types/tax-data.types.ts` - All data structures
+4. `services/core-engine/parameters.ts` - Tax year parameters
+5. `services/types/tax-data.types.ts` - All data structures
+6. `workflow/Invoermethode.ts` - Enhanced Step 1 with navigation logic
+7. `workflow/commit-voorafbetalingen.component.ts` - New Step 4 implementation
 
 **Development Guidelines:**
 - Keep calculation logic in `calculation-core.ts` (pure functions)
 - Add state management to `MainCalculationEngineService`
 - Use layout builders for UI presentation
 - Follow step-aware logic patterns
+- Implement tax year-aware calculations
 - Place unit tests in the separate `unit-tests/` directory
+- Maintain navigation consistency across steps
 
 ### 7.2 For Business Analysts
 
 **Key Business Rules:**
 - **Reduced Rate**: 20% for first €100,000 (if eligible)
 - **Standard Rate**: 25% for amounts above €100,000
-- **Vermeerdering**: 9% penalty for insufficient prepayments
+- **Vermeerdering**: Dynamic penalty rates (8% for 2024, 8.5% for 2025, 9% for 2026)
 - **De Minimis**: No penalty if amount ≤ €50 or 0.5% of tax base
 - **Korfbeperking**: Limits section 6 deductions
+- **Tax Year Parameters**: Quarterly rates and thresholds vary by year
 
 **Calculation Steps:**
-1. Sum declaration sections
-2. Apply intermediate calculations
-3. Apply tax rates
-4. Process prepayments
-5. Calculate penalties
-6. Optimize prepayments
+1. Determine applicable tax year from period data
+2. Sum declaration sections
+3. Apply intermediate calculations
+4. Apply tax rates
+5. Process prepayments
+6. Calculate penalties with year-specific rates
+7. Optimize prepayments
+8. Commit to selected declaration
 
 **User Workflow:**
-1. Input financial data (Step 2)
-2. See real-time calculations
-3. Optimize prepayments (Step 3)
-4. Compare original vs. suggested values
-5. Commit or discard changes
+1. Confirm period and tax year (Step 1)
+2. Input financial data (Step 2)
+3. See real-time calculations
+4. Optimize prepayments (Step 3)
+5. Compare original vs. suggested values
+6. Commit prepayments to declaration (Step 4)
+7. View persistent committed state
 
 ---
 
@@ -270,7 +330,38 @@ npm start  # Runs on localhost:4200
 
 ---
 
-## 9. Future Enhancements
+## 9. Recent Enhancements
+
+### 9.1 Enhanced Step 1 (Invoermethode)
+- **Period Validation**: Robust tax year calculation and validation
+- **Navigation Logic**: Step prerequisites and visual feedback
+- **Tax Year Parameters**: Dynamic parameter management for 2024-2026
+
+### 9.2 New Step 4 (Commit Voorafbetalingen)
+- **Comprehensive Overview**: Tax calculation results and prepayment breakdown
+- **Declaration Management**: Selection and commit functionality
+- **Persistent State**: Committed state remains visible after commit
+- **Core Engine Integration**: Uses existing calculation components for consistency
+
+### 9.3 Navigation Improvements
+- **Step Validation**: Prevents skipping required steps
+- **Save Confirmation**: Prompts for unsaved changes in Step 3
+- **Visual Feedback**: Clear indication of blocked steps
+- **Flexible Navigation**: Free movement after Step 1 completion
+
+### 9.4 Tax Year Support
+- **Dynamic Parameters**: Year-specific rates and thresholds
+- **Multi-Year Calculations**: Support for 2024, 2025, 2026
+- **Backward Compatibility**: Maintains existing functionality
+
+### 9.5 UI/UX Refinements
+- **Color Consistency**: Reduced color palette in Step 4
+- **Component Reuse**: Leverages existing calculation components
+- **Responsive Design**: Improved layout and mobile experience
+
+---
+
+## 10. Future Enhancements
 
 - Additional tax credits and deductions
 - Advanced prepayment optimization algorithms
@@ -278,5 +369,7 @@ npm start  # Runs on localhost:4200
 - Multi-year planning capabilities
 - Export functionality (PDF, Excel)
 - Multi-language support
+- Real-time collaboration features
+- Advanced validation and error handling
 
 *For detailed calculation documentation, see `CALCULATION_DOCUMENTATION.md`*

@@ -3,40 +3,63 @@
 <div class="bg-white shadow-sm border-b mb-6">
   <div class="w-full px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-center py-4">
-      <div class="flex items-center space-x-8">
+      <div class="flex items-center space-x-6">
         <!-- Step 1: Select invoermethode -->
-        <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(1)">
+        <div class="flex items-center space-x-3" 
+             [ngClass]="canNavigateToStep(1) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'"
+             (click)="canNavigateToStep(1) ? goToStep(1) : null">
           <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
-               [ngClass]="currentStep === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
+               [ngClass]="currentStep === 1 ? 'bg-blue-600 text-white' : canNavigateToStep(1) ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gray-100 text-gray-400'">
             1
           </div>
           <span class="text-sm font-medium transition-colors"
-                [ngClass]="currentStep === 1 ? 'text-blue-600' : 'text-gray-500'">
-            Select invoermethode
+                [ngClass]="currentStep === 1 ? 'text-blue-600' : canNavigateToStep(1) ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400'">
+            Periode & Invoermethode
           </span>
         </div>
 
         <!-- Step 2: Vereenvoudigde aangifte invullen -->
-        <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(2)">
+        <div class="flex items-center space-x-3" 
+             [ngClass]="canNavigateToStep(2) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'"
+             (click)="canNavigateToStep(2) ? goToStep(2) : null"
+             [title]="!canNavigateToStep(2) ? 'Complete step 1 first' : ''">
           <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
-               [ngClass]="currentStep === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
+               [ngClass]="currentStep === 2 ? 'bg-blue-600 text-white' : canNavigateToStep(2) ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gray-100 text-gray-400'">
             2
           </div>
           <span class="text-sm font-medium transition-colors"
-                [ngClass]="currentStep === 2 ? 'text-blue-600' : 'text-gray-500'">
+                [ngClass]="currentStep === 2 ? 'text-blue-600' : canNavigateToStep(2) ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400'">
             Vereenvoudigde aangifte invullen
           </span>
         </div>
 
         <!-- Step 3: Voorafbetalingen optimaliseren -->
-        <div class="flex items-center space-x-3 cursor-pointer" (click)="goToStep(3)">
+        <div class="flex items-center space-x-3" 
+             [ngClass]="canNavigateToStep(3) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'"
+             (click)="canNavigateToStep(3) ? goToStep(3) : null"
+             [title]="!canNavigateToStep(3) ? 'Complete step 2 first' : ''">
           <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
-               [ngClass]="currentStep === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'">
+               [ngClass]="currentStep === 3 ? 'bg-blue-600 text-white' : canNavigateToStep(3) ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gray-100 text-gray-400'">
             3
           </div>
           <span class="text-sm font-medium transition-colors"
-                [ngClass]="currentStep === 3 ? 'text-blue-600' : 'text-gray-500'">
+                [ngClass]="currentStep === 3 ? 'text-blue-600' : canNavigateToStep(3) ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400'">
             Voorafbetalingen optimaliseren
+          </span>
+        </div>
+
+        <!-- Step 4: Commit voorafbetalingen -->
+        <div class="flex items-center space-x-3" 
+             [ngClass]="canNavigateToStep(4) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'"
+             (click)="canNavigateToStep(4) ? goToStep(4) : null"
+             [title]="!canNavigateToStep(4) ? 'Complete step 3 first' : ''">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
+               [ngClass]="currentStep === 4 ? 'bg-blue-600 text-white' : canNavigateToStep(4) ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gray-100 text-gray-400'">
+            4
+          </div>
+          <span class="text-sm font-medium transition-colors"
+                [ngClass]="currentStep === 4 ? 'text-blue-600' : canNavigateToStep(4) ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400'">
+            Voorafbetalingen committen
           </span>
         </div>
       </div>
@@ -46,13 +69,77 @@
 
 <!-- Step Content -->
 <div class="w-full px-4 sm:px-6 lg:px-8">
-  <!-- Step 1: Select invoermethode -->
+  <!-- Step 1: Enhanced with period and tax year validation -->
   @if (currentStep === 1) {
     <div class="space-y-6">
-      <div class="bg-white border border-teal-200 rounded-lg p-6 max-w-4xl mx-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
+      <!-- Period Confirmation Section -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6 max-w-4xl mx-auto">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Periode & Aanslagjaar</h3>
+        
+        <!-- Period Display -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full border-teal-500 bg-teal-50">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Periode</label>
+            <div class="mt-1 p-3 bg-gray-50 border rounded-md">
+              <span class="text-sm text-gray-900">{{ periodStart | date:'dd/MM/yyyy' }} → {{ periodEnd | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Boekjaar</label>
+            <div class="mt-1 p-3 bg-gray-50 border rounded-md">
+              <span class="text-sm text-gray-900">{{ calculatedBookYear }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tax Year Display -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Aanslagjaar</label>
+          <div class="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <span class="text-sm font-medium text-blue-900">{{ calculatedTaxYear }}</span>
+          </div>
+        </div>
+        
+        <!-- Confirmation Checkboxes -->
+        <div class="space-y-3">
+          <div class="flex items-center">
+            <input type="checkbox" id="periodConfirmed" [(ngModel)]="periodConfirmed" 
+                   (change)="onPeriodConfirmationChange()"
+                   class="h-4 w-4 text-blue-600 rounded border-gray-300">
+            <label for="periodConfirmed" class="ml-2 text-sm text-gray-700">
+              Ik bevestig dat de periode correct is
+            </label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="taxYearConfirmed" [(ngModel)]="taxYearConfirmed" 
+                   (change)="onTaxYearConfirmationChange()"
+                   [disabled]="!periodConfirmed"
+                   class="h-4 w-4 text-blue-600 rounded border-gray-300 disabled:opacity-50">
+            <label for="taxYearConfirmed" class="ml-2 text-sm text-gray-700" [class.opacity-50]="!periodConfirmed">
+              Ik bevestig dat het aanslagjaar {{ calculatedTaxYear }} correct is
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoermethode Selection -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6 max-w-4xl mx-auto">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Invoermethode</h3>
+        
+        <!-- Validation Message -->
+        @if (!canProceedToStep2()) {
+          <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p class="text-sm text-yellow-800">
+              <strong>Let op:</strong> {{ getValidationMessage() }}
+            </p>
+          </div>
+        }
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+               [ngClass]="selectedInvoermethode === 'handmatig' ? 'border-teal-500 bg-teal-50' : 'border-gray-300 hover:border-teal-300'"
+               (click)="onInvoermethodeSelect('handmatig')"
+               [class.opacity-50]="!periodConfirmed || !taxYearConfirmed">
             <div class="flex items-center space-x-3">
               <span class="text-2xl">📄</span>
               <div>
@@ -61,7 +148,10 @@
               </div>
             </div>
           </div>
-          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full border-teal-500 bg-teal-50">
+          <div class="border rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center h-full"
+               [ngClass]="selectedInvoermethode === 'vorig_jaar' ? 'border-teal-500 bg-teal-50' : 'border-gray-300 hover:border-teal-300'"
+               (click)="onInvoermethodeSelect('vorig_jaar')"
+               [class.opacity-50]="!periodConfirmed || !taxYearConfirmed">
             <div class="flex items-center space-x-3">
               <span class="text-2xl">🗂️</span>
               <div>
@@ -71,6 +161,7 @@
             </div>
           </div>
         </div>
+        
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p class="text-xs text-blue-800">
             <strong>Handmatige invoer:</strong> Voer de verwachte bedragen direct in voor een snelle berekening. U kunt deze waarden op elk moment aanpassen.
@@ -88,6 +179,11 @@
   <!-- Step 3: Voorafbetalingen optimaliseren -->
   @if (currentStep === 3) {
     <app-voorschotten-optimaliseren></app-voorschotten-optimaliseren>
+  }
+
+  <!-- Step 4: Commit voorafbetalingen -->
+  @if (currentStep === 4) {
+    <app-commit-voorafbetalingen></app-commit-voorafbetalingen>
   }
 </div>
 

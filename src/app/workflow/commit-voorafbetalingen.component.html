@@ -1,0 +1,272 @@
+<!-- Step 4: Comprehensive Tax Overview & Commit -->
+<div class="space-y-6 max-w-7xl mx-auto">
+  <h3 class="text-2xl font-semibold text-gray-900">Voorafbetalingen Committeren</h3>
+  
+  <!-- Error Messages Only -->
+  @if (errorMessage) {
+    <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+        </svg>
+        <span class="text-red-800">{{ errorMessage }}</span>
+      </div>
+    </div>
+  }
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column: Tax Information -->
+    <div class="lg:col-span-2 space-y-6">
+      
+      <!-- 1. Prepayments Done -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          Voorafbetalingen
+        </h4>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center p-3 bg-green-50 rounded-lg">
+            <div class="text-sm text-gray-600">Q1</div>
+            <div class="text-lg font-semibold text-green-700">{{ currentPrepayments.va1 | number:'1.0-0' }} €</div>
+          </div>
+          <div class="text-center p-3 bg-green-50 rounded-lg">
+            <div class="text-sm text-gray-600">Q2</div>
+            <div class="text-lg font-semibold text-green-700">{{ currentPrepayments.va2 | number:'1.0-0' }} €</div>
+          </div>
+          <div class="text-center p-3 bg-green-50 rounded-lg">
+            <div class="text-sm text-gray-600">Q3</div>
+            <div class="text-lg font-semibold text-green-700">{{ currentPrepayments.va3 | number:'1.0-0' }} €</div>
+          </div>
+          <div class="text-center p-3 bg-green-50 rounded-lg">
+            <div class="text-sm text-gray-600">Q4</div>
+            <div class="text-lg font-semibold text-green-700">{{ currentPrepayments.va4 | number:'1.0-0' }} €</div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <div class="flex justify-between items-center">
+            <span class="text-lg font-semibold text-gray-900">Totaal Voorafbetalingen:</span>
+            <span class="text-2xl font-bold text-green-600">
+              {{ (currentPrepayments.va1 + currentPrepayments.va2 + currentPrepayments.va3 + currentPrepayments.va4) | number:'1.0-0' }} €
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Taxes to be Paid & Vermeerdering -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"></path>
+          </svg>
+          Belastingen & Vermeerdering
+        </h4>
+        
+        @if (taxCalculationResults) {
+          <div class="space-y-4">
+            <!-- Tax Calculation Results -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="p-4 bg-blue-50 rounded-lg">
+                <div class="text-sm text-gray-600">Belastbare Winst</div>
+                <div class="text-lg font-semibold text-blue-700">{{ taxCalculationResults.taxableIncome | number:'1.0-0' }} €</div>
+              </div>
+              <div class="p-4 bg-blue-50 rounded-lg">
+                <div class="text-sm text-gray-600">Totaal Belasting</div>
+                <div class="text-lg font-semibold text-blue-700">{{ taxCalculationResults.totalTaxLiability | number:'1.0-0' }} €</div>
+              </div>
+            </div>
+            
+                         <!-- Vermeerdering Information - Simple calculation box -->
+             @if (taxCalculationResults) {
+               <div class="p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                 <div class="flex items-center mb-3 font-semibold text-gray-900">
+                   <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                     <path d="M13 16h-1v-4h-1m1-4h.01"/>
+                     <circle cx="12" cy="12" r="10"/>
+                   </svg>
+                   Berekening vermeerdering wegens ontoereikende voorafbetalingen
+                 </div>
+                 <div class="flex justify-between py-1 text-sm">
+                   <span class="text-gray-700">Berekening vermeerdering</span>
+                   <span class="font-medium">{{ taxCalculationResults.berekeningVermeerdering | number:'1.2-2' }} €</span>
+                 </div>
+                 <div class="flex justify-between py-1 text-sm">
+                   <span class="text-gray-700">Aftrek door voorafbetalingen</span>
+                   <span class="font-medium">{{ taxCalculationResults.aftrekDoorVoorafbetalingen | number:'1.2-2' }} €</span>
+                 </div>
+                 <div class="flex justify-between py-2 mt-2 border-t border-teal-200 font-bold text-gray-900">
+                   <span>Vermeerdering wegens ontoereikende voorafbetalingen</span>
+                   <span>{{ taxCalculationResults.vermeerderingWegensOntoereikendeVoorafbetalingen | number:'1.2-2' }} €</span>
+                 </div>
+               </div>
+             }
+          </div>
+        } @else {
+          <div class="text-center py-8 text-gray-500">
+            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p>Berekening wordt geladen...</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Column: Commit Section -->
+    <div class="lg:col-span-1">
+      <div class="bg-white border border-gray-200 rounded-lg p-6 sticky top-6">
+        @if (!isCommitted) {
+          <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            Voorafbetalingen Committen
+          </h4>
+          
+          <!-- Declaration Selection -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Selecteer aangifte
+            </label>
+            <select [(ngModel)]="selectedDeclarationId" 
+                    (change)="clearMessages()"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- Selecteer aangifte --</option>
+              @for (decl of availableDeclarations; track decl.id) {
+                <option [value]="decl.id">
+                  {{ decl.name }} ({{ decl.assessmentYear }})
+                </option>
+              }
+            </select>
+          </div>
+          
+          <!-- Data Summary -->
+          @if (selectedDeclarationId) {
+            <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div class="text-sm text-gray-600 mb-2">Te committen:</div>
+              <div class="space-y-1 text-sm">
+                <div class="flex justify-between">
+                  <span>Q1:</span>
+                  <span class="font-medium">{{ previewData.va1 | number:'1.0-0' }} €</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Q2:</span>
+                  <span class="font-medium">{{ previewData.va2 | number:'1.0-0' }} €</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Q3:</span>
+                  <span class="font-medium">{{ previewData.va3 | number:'1.0-0' }} €</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Q4:</span>
+                  <span class="font-medium">{{ previewData.va4 | number:'1.0-0' }} €</span>
+                </div>
+                <div class="border-t pt-1 mt-2">
+                  <div class="flex justify-between font-semibold">
+                    <span>Totaal:</span>
+                    <span class="text-blue-600">{{ (previewData.va1 + previewData.va2 + previewData.va3 + previewData.va4) | number:'1.0-0' }} €</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+          
+          <!-- Action Buttons -->
+          <div class="space-y-3">
+            <button (click)="commitData()" 
+                    [disabled]="!selectedDeclarationId || isLoading"
+                    class="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium">
+              @if (isLoading) {
+                <span class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Committen...
+                </span>
+              } @else {
+                Committen
+              }
+            </button>
+            <button (click)="cancelCommit()" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+              Annuleren
+            </button>
+          </div>
+        } @else {
+          <!-- Committed State Display -->
+          <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            Voorafbetalingen Committeren
+          </h4>
+          
+          <!-- Declaration Selection (Disabled) -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Selecteer aangifte
+            </label>
+            <select disabled
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
+              @if (committedDeclaration) {
+                <option>{{ committedDeclaration.name }} ({{ committedDeclaration.assessmentYear }})</option>
+              }
+            </select>
+          </div>
+          
+          <!-- Committed Data Summary -->
+          <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+            <div class="text-sm text-gray-600 mb-2">Te committen:</div>
+            <div class="space-y-1 text-sm">
+              <div class="flex justify-between">
+                <span>Q1:</span>
+                <span class="font-medium">{{ previewData.va1 | number:'1.0-0' }} €</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Q2:</span>
+                <span class="font-medium">{{ previewData.va2 | number:'1.0-0' }} €</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Q3:</span>
+                <span class="font-medium">{{ previewData.va3 | number:'1.0-0' }} €</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Q4:</span>
+                <span class="font-medium">{{ previewData.va4 | number:'1.0-0' }} €</span>
+              </div>
+              <div class="border-t pt-1 mt-2">
+                <div class="flex justify-between font-semibold">
+                  <span>Totaal:</span>
+                  <span class="text-blue-600">{{ (previewData.va1 + previewData.va2 + previewData.va3 + previewData.va4) | number:'1.0-0' }} €</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Success Message -->
+          <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm font-medium text-green-800">
+                  @if (committedDeclaration) {
+                    Voorafbetalingen goed opgeladen in {{ committedDeclaration.name }} ({{ committedDeclaration.assessmentYear }})
+                  } @else {
+                    Voorafbetalingen goed opgeladen
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div> 
