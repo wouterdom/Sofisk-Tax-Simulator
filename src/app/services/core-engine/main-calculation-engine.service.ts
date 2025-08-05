@@ -105,7 +105,8 @@ export class MainCalculationEngineService {
       code1830: core.code1830,
       code1840: core.code1840,
       prepayments: prepaymentsForDetail, // Use appropriate prepayments based on step
-      isSmallCompanyFirstThreeYears: data.isSmallCompanyFirstThreeYears
+      isSmallCompanyFirstThreeYears: data.isSmallCompanyFirstThreeYears,
+      taxYear: this.getCurrentTaxYear() // Pass the current tax year to use correct parameters
     });
 
     // Calculate final tax payable based on the prepayments used for this step

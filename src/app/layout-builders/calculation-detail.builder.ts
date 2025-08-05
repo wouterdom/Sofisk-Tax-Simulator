@@ -1,4 +1,4 @@
-import { FIELD_CODES, TAX_CONSTANTS } from '../services/core-engine/parameters';
+import { FIELD_CODES, TAX_CONSTANTS, getTaxYearParameters } from '../services/core-engine/parameters';
 import { CalculationRow, Prepayments } from '../services/types/tax-data.types';
 
 /**
@@ -13,6 +13,7 @@ export interface CalculationDetailParams {
   code1840: number;
   prepayments: Prepayments;
   isSmallCompanyFirstThreeYears: boolean;
+  taxYear?: string; // Add tax year parameter
 }
 
 export interface CalculationDetailResult {
@@ -45,7 +46,11 @@ export function buildCalculationDetail({
   code1840,
   prepayments,
   isSmallCompanyFirstThreeYears,
+  taxYear = '2025', // Default to 2025 if not provided
 }: CalculationDetailParams): CalculationDetailResult {
+  // Get the correct parameters for the tax year
+  const params = getTaxYearParameters(taxYear);
+
   /* -------------------------------------------------------------
    * 1. Calculation rows (tariff split)
    * -----------------------------------------------------------*/
@@ -54,15 +59,15 @@ export function buildCalculationDetail({
       code: FIELD_CODES.BELASTBARE_WINST_GEWOON_TARIEF,
       description: 'Belastbaar tegen verminderd tarief',
       amount: reducedRateBase,
-      rate: TAX_CONSTANTS.REDUCED_RATE * 100,
-      result: reducedRateBase * TAX_CONSTANTS.REDUCED_RATE,
+      rate: params.REDUCED_RATE * 100,
+      result: reducedRateBase * params.REDUCED_RATE,
     },
     {
       code: FIELD_CODES.BELASTBARE_WINST_GEWOON_TARIEF,
       description: 'Belastbaar tegen gewoon tarief',
       amount: standardRateBase,
-      rate: TAX_CONSTANTS.STANDARD_RATE * 100,
-      result: standardRateBase * TAX_CONSTANTS.STANDARD_RATE,
+      rate: params.STANDARD_RATE * 100,
+      result: standardRateBase * params.STANDARD_RATE,
     },
   ];
   const calculationTotal = calculationRows.reduce((sum, r) => sum + r.result, 0);
@@ -119,21 +124,21 @@ export function buildCalculationDetail({
       result: 0,
     });
   } else {
-    berekeningVermeerdering = Math.max(0, saldo2 * TAX_CONSTANTS.STANDARD_INCREASE_RATE);
+    berekeningVermeerdering = Math.max(0, saldo2 * params.STANDARD_INCREASE_RATE);
 
     const { va1, va2, va3, va4 } = prepayments;
-    const deduction1 = -(va1 * TAX_CONSTANTS.QUARTERLY_RATES.Q1);
-    const deduction2 = -(va2 * TAX_CONSTANTS.QUARTERLY_RATES.Q2);
-    const deduction3 = -(va3 * TAX_CONSTANTS.QUARTERLY_RATES.Q3);
-    const deduction4 = -(va4 * TAX_CONSTANTS.QUARTERLY_RATES.Q4);
+    const deduction1 = -(va1 * params.QUARTERLY_RATES.Q1);
+    const deduction2 = -(va2 * params.QUARTERLY_RATES.Q2);
+    const deduction3 = -(va3 * params.QUARTERLY_RATES.Q3);
+    const deduction4 = -(va4 * params.QUARTERLY_RATES.Q4);
 
     totaalAftrekVA = deduction1 + deduction2 + deduction3 + deduction4;
     aftrekDoorVoorafbetalingen = totaalAftrekVA;
 
     vermeerderingBeforeDeMinimis = Math.max(0, berekeningVermeerdering + totaalAftrekVA);
     const deMinimisThreshold = Math.max(
-      TAX_CONSTANTS.DE_MINIMIS_THRESHOLD,
-      saldo2 * TAX_CONSTANTS.DE_MINIMIS_PERCENTAGE,
+      params.DE_MINIMIS_THRESHOLD,
+      saldo2 * params.DE_MINIMIS_PERCENTAGE,
     );
     vermeerderingTotal =
       vermeerderingBeforeDeMinimis <= deMinimisThreshold ? 0 : vermeerderingBeforeDeMinimis;
@@ -144,35 +149,35 @@ export function buildCalculationDetail({
         code: '',
         description: 'Berekening vermeerdering',
         amount: saldo2,
-        rate: TAX_CONSTANTS.STANDARD_INCREASE_RATE * 100,
+        rate: params.STANDARD_INCREASE_RATE * 100,
         result: berekeningVermeerdering,
       },
       {
         code: '1811',
         description: 'Voorafbetaling 1',
         amount: va1,
-        rate: TAX_CONSTANTS.QUARTERLY_RATES.Q1 * 100,
+        rate: params.QUARTERLY_RATES.Q1 * 100,
         result: deduction1,
       },
       {
         code: '1812',
         description: 'Voorafbetaling 2',
         amount: va2,
-        rate: TAX_CONSTANTS.QUARTERLY_RATES.Q2 * 100,
+        rate: params.QUARTERLY_RATES.Q2 * 100,
         result: deduction2,
       },
       {
         code: '1813',
         description: 'Voorafbetaling 3',
         amount: va3,
-        rate: TAX_CONSTANTS.QUARTERLY_RATES.Q3 * 100,
+        rate: params.QUARTERLY_RATES.Q3 * 100,
         result: deduction3,
       },
       {
         code: '1814',
         description: 'Voorafbetaling 4',
         amount: va4,
-        rate: TAX_CONSTANTS.QUARTERLY_RATES.Q4 * 100,
+        rate: params.QUARTERLY_RATES.Q4 * 100,
         result: deduction4,
       },
       {
@@ -202,7 +207,7 @@ export function buildCalculationDetail({
   /* -------------------------------------------------------------
    * 4. Result rows
    * -----------------------------------------------------------*/
-  const result1508 = code1508 * TAX_CONSTANTS.LIQUIDATION_RESERVE_RATE;
+  const result1508 = code1508 * params.LIQUIDATION_RESERVE_RATE;
   // Use the tax deductions instead of raw prepayment amounts
   const voorafbetalingenTotal = totaalAftrekVA;
 
@@ -237,7 +242,7 @@ export function buildCalculationDetail({
       description:
         'Afzonderlijke aanslag van het gedeelte van de boekhoudkundige winst na belasting dat is overgeboekt naar de liquidatiereserve',
       amount: code1508,
-      rate: TAX_CONSTANTS.LIQUIDATION_RESERVE_RATE * 100,
+      rate: params.LIQUIDATION_RESERVE_RATE * 100,
       result: result1508,
     },
   ];

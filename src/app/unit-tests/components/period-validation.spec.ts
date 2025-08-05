@@ -100,7 +100,7 @@ describe('Period Validation', () => {
   describe('tax year calculation', () => {
     it('should calculate correct tax year for December 31st period end', () => {
       component.periodEnd = new Date(2023, 11, 31);
-      component.calculateTaxYear();
+      component.onPeriodChange();
       
       expect(component.calculatedTaxYear).toBe('2024');
       expect(component.calculatedBookYear).toBe('2023');
@@ -108,7 +108,7 @@ describe('Period Validation', () => {
 
     it('should calculate correct tax year for December 30th period end', () => {
       component.periodEnd = new Date(2024, 11, 30);
-      component.calculateTaxYear();
+      component.onPeriodChange();
       
       expect(component.calculatedTaxYear).toBe('2024');
       expect(component.calculatedBookYear).toBe('2024');
@@ -116,7 +116,7 @@ describe('Period Validation', () => {
 
     it('should calculate correct tax year for January 15th period end', () => {
       component.periodEnd = new Date(2024, 0, 15);
-      component.calculateTaxYear();
+      component.onPeriodChange();
       
       expect(component.calculatedTaxYear).toBe('2024');
       expect(component.calculatedBookYear).toBe('2024');
@@ -125,7 +125,7 @@ describe('Period Validation', () => {
     it('should calculate correct boekjaar for multi-year period', () => {
       component.periodStart = new Date(2024, 6, 1); // July 1, 2024
       component.periodEnd = new Date(2025, 5, 30); // June 30, 2025
-      component.calculateTaxYear();
+      component.onPeriodChange();
       
       expect(component.calculatedTaxYear).toBe('2025');
       expect(component.calculatedBookYear).toBe('2024/2025');
@@ -134,7 +134,7 @@ describe('Period Validation', () => {
     it('should calculate correct boekjaar for fiscal year period', () => {
       component.periodStart = new Date(2024, 3, 1); // April 1, 2024
       component.periodEnd = new Date(2025, 2, 31); // March 31, 2025
-      component.calculateTaxYear();
+      component.onPeriodChange();
       
       expect(component.calculatedTaxYear).toBe('2025');
       expect(component.calculatedBookYear).toBe('2024/2025');
@@ -143,7 +143,7 @@ describe('Period Validation', () => {
     it('should calculate correct boekjaar for same year period', () => {
       component.periodStart = new Date(2024, 0, 1); // January 1, 2024
       component.periodEnd = new Date(2024, 11, 31); // December 31, 2024
-      component.calculateTaxYear();
+      component.onPeriodChange();
       
       expect(component.calculatedTaxYear).toBe('2025');
       expect(component.calculatedBookYear).toBe('2024');
