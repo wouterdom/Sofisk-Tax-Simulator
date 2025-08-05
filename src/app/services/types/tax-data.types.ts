@@ -51,6 +51,16 @@ export interface PeriodData {
   bookYear: string;
   taxYear: string;
   isConfirmed?: boolean;
+  bookYearInfo?: {
+    durationInMonths: number;
+    durationInDays: number;
+    isShortBookYear: boolean;
+    isLongBookYear: boolean;
+    isNormalBookYear: boolean;
+    quartersInBookYear: number;
+    typeDescription: string;
+    prepaymentDescription?: string;
+  };
 }
 
 export interface InvoermethodeData {

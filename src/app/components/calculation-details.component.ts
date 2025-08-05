@@ -258,7 +258,12 @@ export class CalculationDetailsComponent {
   }
 
   hasVermeerderingDetails(): boolean {
-    return (this.calculationResults?.vermeerderingRows?.length ?? 0) > 7;
+    const rowCount = this.calculationResults?.vermeerderingRows?.length ?? 0;
+    // Show details if we have at least the basic structure:
+    // - "Berekening vermeerdering" row
+    // - At least one prepayment row
+    // - Summary rows ("Totaal aftrek VA", "Aftrek door VA", "Berekening vermeerdering" summary)
+    return rowCount >= 5;
   }
 
   // Check if de-minimis rule is applied (final result is 0 but before de-minimis it was > 0)

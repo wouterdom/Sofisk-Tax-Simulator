@@ -7,6 +7,7 @@ The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimat
 **Primary Goals:**
 - Real-time corporate tax estimation with multi-year support (2024-2026)
 - Prepayment optimization to minimize penalties (`vermeerdering`)
+- Support for short book years (verkorte boekjaren) with adjusted calculations
 - User-friendly interface for accountants, tax advisors, and business owners
 - Comprehensive commit functionality for tax declarations
 
@@ -26,12 +27,14 @@ The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimat
 - Period and tax year confirmation and validation
 - Robust navigation logic with step prerequisites
 - Tax year-specific parameter management
+- Short book year detection and validation
 
 **Step 2: Vereenvoudigde Aangifte (Simplified Declaration)**
 - Input financial data across 9 declaration sections
 - Real-time calculation of subtotals and final taxable base
 - Set eligibility flags (reduced tax rate, new company exemptions)
 - Shows "Detail van de berekening" using current input values
+- Dynamic prepayment field display based on book year type
 
 **Step 3: Voorschotten Optimaliseren (Prepayment Optimization)**
 - Suggests prepayment amounts using various strategies
@@ -39,6 +42,7 @@ The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimat
 - Shows calculation breakdown using suggested prepayment values
 - Always displays original values for comparison
 - Save confirmation dialog when navigating away with changes
+- Short book year-aware prepayment calculations
 
 **Step 4: Voorafbetalingen Committeren (Commit Prepayments)**
 - Comprehensive tax overview with prepayment breakdown
@@ -46,13 +50,21 @@ The Sofisk Tax Simulator is a web-based tool for Belgian corporations to estimat
 - Persistent committed state display
 - Integration with core calculation engine for consistent data
 
-### 2.2 Data Management
+### 2.2 Short Book Year Support
+- **Automatic Detection**: System detects short book years based on period duration
+- **Adjusted Calculations**: Vermeerdering rates adjusted for available quarters
+- **Dynamic UI**: Only relevant prepayment fields shown based on book year type
+- **Due Date Integration**: Prepayment due dates integrated directly with input fields
+- **Period-Aware Logic**: All calculations respect the actual book year duration
+
+### 2.3 Data Management
 - Automatic localStorage persistence
 - Reset to defaults, clear data, commit simulation values
 - Step persistence across browser sessions
 - Tax year-specific data structures and parameters
+- Book year information persistence and validation
 
-### 2.3 Enhanced Navigation
+### 2.4 Enhanced Navigation
 - Step-by-step progression with validation
 - Visual cues for blocked steps
 - Save confirmation for unsaved changes
@@ -78,6 +90,7 @@ The system uses a **three-layer architecture** with clear separation of concerns
 │  • Data Persistence (localStorage)                         │
 │  • Step Context Management                                 │
 │  • Tax Year Parameter Management                           │
+│  • Book Year Information Management                        │
 │  • Coordinates Core Engine & Layout Builders               │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -86,6 +99,7 @@ The system uses a **three-layer architecture** with clear separation of concerns
 │  • Pure Mathematical Calculations                           │
 │  • Business Logic Implementation                            │
 │  • Tax Year-Aware Calculations                              │
+│  • Short Book Year Calculations                             │
 │  • No UI Dependencies                                       │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -94,6 +108,7 @@ The system uses a **three-layer architecture** with clear separation of concerns
 │  • UI Presentation Logic                                    │
 │  • Calculation Detail Rows                                  │
 │  • Simplified Return Cards                                  │
+│  • Dynamic Prepayment Display                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -108,6 +123,7 @@ src/app/
 │   │   ├── calculation-core.ts         # Pure mathematical calculations
 │   │   ├── main-calculation-engine.service.ts  # Orchestration service
 │   │   ├── prepayment.service.ts       # Prepayment business logic
+│   │   ├── book-year-calculator.service.ts  # Book year calculations & due dates
 │   │   └── parameters.ts               # Tax year parameters & constants
 │   ├── types/                          # TypeScript type definitions
 │   │   ├── tax-data.types.ts           # Core data interfaces
@@ -150,6 +166,7 @@ src/app/
 - **Data Persistence**: Handles localStorage operations
 - **Step Context**: Manages which prepayment values to use (current vs. suggested)
 - **Tax Year Management**: Dynamic parameter retrieval for 2024-2026
+- **Book Year Management**: Calculates and manages book year information
 - **Core Engine Coordination**: Calls the core engine with appropriate inputs
 - **Layout Builder Coordination**: Provides data to UI presentation builders
 
@@ -169,6 +186,15 @@ const taxYear = this.calculateTaxYear(data);
 const parameters = getTaxYearParameters(taxYear);
 ```
 
+**Book Year Logic:**
+```typescript
+// Calculate book year information for short book year support
+const bookYearInfo = this.bookYearCalculator.calculateBookYearInfo(
+  data.periodData.startDate, 
+  data.periodData.endDate
+);
+```
+
 **Reactive Data Flow:**
 ```typescript
 // 1. User input triggers data change
@@ -184,7 +210,29 @@ service.setupReactiveCalculations() → performCalculation()
 component.dataSubscription → UI updates
 ```
 
-### 5.2 Calculation Core (Pure Math Layer)
+### 5.2 BookYearCalculatorService (Book Year Logic)
+**Purpose:** Handles all book year calculations and prepayment due dates
+
+**Key Features:**
+- **Book Year Detection**: Determines if a book year is short, normal, or long
+- **Quarter Calculation**: Calculates number of quarters in book year
+- **Due Date Calculation**: Calculates prepayment due dates based on book year type
+- **Short Book Year Logic**: Adjusts calculations for periods less than 12 months
+- **Tax Year Calculation**: Determines applicable tax year based on period end date
+
+**Book Year Types:**
+- **Normal Book Year**: 12 months (4 quarters)
+- **Short Book Year**: Less than 12 months (1-3 quarters)
+- **Long Book Year**: More than 12 months (rare, handled as normal)
+
+**Due Date Logic:**
+```typescript
+// Normal book year: Standard quarterly due dates
+// Short book year: Due dates based on actual quarters available
+const dueDates = this.calculateLatestPrepaymentDates(bookYearInfo, taxYear);
+```
+
+### 5.3 Calculation Core (Pure Math Layer)
 **Purpose:** Contains all Belgian corporate tax calculation logic
 
 **Characteristics:**
@@ -193,6 +241,7 @@ component.dataSubscription → UI updates
 - Easily testable and reusable
 - Implements official Belgian tax rules
 - Tax year-aware calculations
+- Short book year-aware calculations
 
 **Calculation Flow:**
 1. Section aggregation (sums fields within sections)
@@ -201,9 +250,9 @@ component.dataSubscription → UI updates
 4. Tax rate application (20% reduced + 25% standard)
 5. Voorheffingen processing (prepayments)
 6. Vermeerdering calculation (dynamic penalty rates with de-minimis rules)
-7. Prepayment optimization
+7. Prepayment optimization (with short book year support)
 
-### 5.3 PrepaymentService (Business Logic)
+### 5.4 PrepaymentService (Business Logic)
 **Purpose:** Handles prepayment-specific calculations and optimization
 
 **Key Features:**
@@ -212,8 +261,20 @@ component.dataSubscription → UI updates
 - Handle different concentration methods (spread, Q1-Q4)
 - Implement "Saldo Nul" calculations
 - Tax year-aware quarterly rates
+- Short book year prepayment calculations
 
-### 5.4 Date Calculation System (Reactive Pattern)
+**Short Book Year Support:**
+```typescript
+// Adjust prepayment calculations for short book years
+if (bookYearInfo?.isShortBookYear) {
+  return this.calculateShortBookYearPrepayments(
+    goal, taxIncreaseBase, separateAssessment, 
+    concentration, taxYear, bookYearInfo
+  );
+}
+```
+
+### 5.5 Date Calculation System (Reactive Pattern)
 **Purpose:** Handles period validation and tax year calculations with instant reactivity
 
 **Key Features:**
@@ -221,6 +282,7 @@ component.dataSubscription → UI updates
 - **Instant UI Updates**: Calculated values update immediately as user types
 - **Robust Date Handling**: Supports both string and Date object types for display and storage
 - **Business Rule Implementation**: Correctly calculates boekjaar and aanslagjaar based on Belgian tax rules
+- **Short Book Year Detection**: Automatically detects and validates short book years
 
 **Reactive Implementation Pattern:**
 ```typescript
@@ -229,6 +291,7 @@ this.dataSubscription = this.taxDataService.data$.subscribe(data => {
   if (data?.periodData) {
     this.calculatedBookYear = data.periodData.bookYear || '';
     this.calculatedTaxYear = data.periodData.taxYear || '';
+    this.bookYearInfo = data.periodData.bookYearInfo || null;
   }
 });
 
@@ -245,6 +308,7 @@ savePeriodData(): void {
     endDate: endDate,
     bookYear: calculatedBookYear,
     taxYear: calculatedTaxYear,
+    bookYearInfo: bookYearInfo,
   };
   this.taxDataService.savePeriodData(periodData); // Triggers dataSubject.next()
 }
@@ -273,18 +337,30 @@ if (startYear === endYear) {
 } else {
   calculatedBookYear = `${startYear}/${endYear}`; // Multi-year: "2023/2024"
 }
+
+// Short Book Year Detection
+const monthsBetween = this.calculateMonthsBetween(startDate, endDate);
+const isShortBookYear = monthsBetween < 12;
+const quartersInBookYear = Math.ceil(monthsBetween / 3);
 ```
 
 **Example Calculations:**
 - **Period**: 01-01-2023 to 31-12-2023
   - **Boekjaar**: 2023
   - **Aanslagjaar**: 2024 (ends on December 31st)
+  - **Type**: Normal book year (12 months, 4 quarters)
 - **Period**: 01-01-2024 to 30-12-2024
   - **Boekjaar**: 2024
   - **Aanslagjaar**: 2024 (doesn't end on December 31st)
+  - **Type**: Normal book year (12 months, 4 quarters)
 - **Period**: 01-07-2024 to 30-06-2025
   - **Boekjaar**: 2024/2025
   - **Aanslagjaar**: 2025
+  - **Type**: Normal book year (12 months, 4 quarters)
+- **Period**: 01-01-2025 to 31-03-2025
+  - **Boekjaar**: 2025
+  - **Aanslagjaar**: 2025
+  - **Type**: Short book year (3 months, 1 quarter)
 
 **Parameter Validation:**
 - **Supported Years**: 2024, 2025, 2026 (have specific tax parameters)
@@ -305,7 +381,7 @@ if (startYear === endYear) {
 - **Validation**: Robust validation prevents invalid date storage
 - **Parameter Validation**: Warns when tax year doesn't have specific parameters (2024-2026 only)
 
-### 5.5 Parameters Service (Tax Year Management)
+### 5.6 Parameters Service (Tax Year Management)
 **Purpose:** Manages tax year-specific parameters and constants
 
 **Key Features:**
@@ -314,7 +390,7 @@ if (startYear === endYear) {
 - Vermeerdering percentage management
 - Step configuration constants
 
-### 5.5 Layout Builders (UI Presentation)
+### 5.7 Layout Builders (UI Presentation)
 **Purpose:** Transform calculation results into display-ready formats
 
 **Components:**
@@ -322,7 +398,12 @@ if (startYear === endYear) {
 - **Key-Values Cards Builder**: Creates simplified return cards
 - **Vereenvoudigde Aangifte Builder**: Provides default declaration structure
 
-### 5.6 Utility Services
+**Short Book Year Support:**
+- **Dynamic Prepayment Rows**: Only shows relevant prepayment rows based on quarters
+- **Adjusted Vermeerdering Display**: Shows correct calculation breakdown for short periods
+- **Due Date Integration**: Displays due dates inline with prepayment fields
+
+### 5.8 Utility Services
 **Purpose:** Provide common functionality across the application
 
 **Services:**
@@ -346,9 +427,10 @@ private isLoadingSubject: BehaviorSubject<boolean>;
 1. **User Input** → Components call service methods
 2. **State Update** → Service updates BehaviorSubject
 3. **Tax Year Calculation** → Service determines applicable tax year
-4. **Core Engine Call** → Service calls `runCoreEngine()` with current data and tax year
-5. **Layout Building** → Service calls layout builders with core results
-6. **UI Update** → Components automatically update via RxJS subscriptions
+4. **Book Year Calculation** → Service calculates book year information
+5. **Core Engine Call** → Service calls `runCoreEngine()` with current data, tax year, and book year info
+6. **Layout Building** → Service calls layout builders with core results
+7. **UI Update** → Components automatically update via RxJS subscriptions
 
 ### 6.3 Step-Aware Calculations
 - **Step 2**: Uses current prepayment values for real-time editing
@@ -379,12 +461,14 @@ npm start  # Runs on localhost:4200
 
 **Key Files to Understand:**
 1. `services/core-engine/main-calculation-engine.service.ts` - Start here
-2. `services/core-engine/calculation-core.ts` - Pure calculation logic
-3. `services/core-engine/prepayment.service.ts` - Prepayment business logic
-4. `services/core-engine/parameters.ts` - Tax year parameters
-5. `services/types/tax-data.types.ts` - All data structures
-6. `workflow/Invoermethode.ts` - Enhanced Step 1 with navigation logic
-7. `workflow/commit-voorafbetalingen.component.ts` - New Step 4 implementation
+2. `services/core-engine/book-year-calculator.service.ts` - Book year logic
+3. `services/core-engine/calculation-core.ts` - Pure calculation logic
+4. `services/core-engine/prepayment.service.ts` - Prepayment business logic
+5. `services/core-engine/parameters.ts` - Tax year parameters
+6. `services/types/tax-data.types.ts` - All data structures
+7. `workflow/Invoermethode.ts` - Enhanced Step 1 with navigation logic
+8. `workflow/commit-voorafbetalingen.component.ts` -  Step 4 implementation
+9. `components/prepayment.component.ts` - Prepayment UI with due dates
 
 **Development Guidelines:**
 - Keep calculation logic in `calculation-core.ts` (pure functions)
@@ -392,6 +476,7 @@ npm start  # Runs on localhost:4200
 - Use layout builders for UI presentation
 - Follow step-aware logic patterns
 - Implement tax year-aware calculations
+- Implement short book year-aware calculations
 - Place unit tests in the separate `unit-tests/` directory
 - Maintain navigation consistency across steps
 
@@ -404,16 +489,24 @@ npm start  # Runs on localhost:4200
 - **De Minimis**: No penalty if amount ≤ €50 or 0.5% of tax base
 - **Korfbeperking**: Limits section 6 deductions
 - **Tax Year Parameters**: Quarterly rates and thresholds vary by year
+- **Short Book Years**: Adjusted calculations for periods less than 12 months
+
+**Short Book Year Rules:**
+- **Detection**: Automatically detected based on period duration
+- **Vermeerdering Rate**: Adjusted based on available quarters
+- **Prepayment Fields**: Only relevant quarters shown in UI
+- **Due Dates**: Calculated based on actual book year structure
 
 **Calculation Steps:**
 1. Determine applicable tax year from period data
-2. Sum declaration sections
-3. Apply intermediate calculations
-4. Apply tax rates
-5. Process prepayments
-6. Calculate penalties with year-specific rates
-7. Optimize prepayments
-8. Commit to selected declaration
+2. Calculate book year information (normal vs. short)
+3. Sum declaration sections
+4. Apply intermediate calculations
+5. Apply tax rates
+6. Process prepayments (with short book year adjustments)
+7. Calculate penalties with year-specific rates
+8. Optimize prepayments (with short book year support)
+9. Commit to selected declaration
 
 **User Workflow:**
 1. Confirm period and tax year (Step 1)
@@ -439,44 +532,56 @@ npm start  # Runs on localhost:4200
 
 ## 9. Recent Enhancements
 
-### 9.1 Enhanced Step 1 (Invoermethode)
+### 9.1 Short Book Year Support
+- **Automatic Detection**: System detects short book years based on period duration
+- **Adjusted Calculations**: Vermeerdering rates adjusted for available quarters
+- **Dynamic UI**: Only relevant prepayment fields shown based on book year type
+- **Due Date Integration**: Prepayment due dates integrated directly with input fields
+- **Period-Aware Logic**: All calculations respect the actual book year duration
+
+### 9.2 Enhanced Step 1 (Invoermethode)
 - **Period Validation**: Robust tax year calculation and validation
 - **Navigation Logic**: Step prerequisites and visual feedback
 - **Tax Year Parameters**: Dynamic parameter management for 2024-2026
+- **Book Year Detection**: Automatic short book year detection and validation
 
-### 9.2 New Step 4 (Commit Voorafbetalingen)
+### 9.3 New Step 4 (Commit Voorafbetalingen)
 - **Comprehensive Overview**: Tax calculation results and prepayment breakdown
 - **Declaration Management**: Selection and commit functionality
 - **Persistent State**: Committed state remains visible after commit
 - **Core Engine Integration**: Uses existing calculation components for consistency
 
-### 9.3 Navigation Improvements
+### 9.4 Navigation Improvements
 - **Step Validation**: Prevents skipping required steps
 - **Save Confirmation**: Prompts for unsaved changes in Step 3
 - **Visual Feedback**: Clear indication of blocked steps
 - **Flexible Navigation**: Free movement after Step 1 completion
 
-### 9.4 Tax Year Support
+### 9.5 Tax Year Support
 - **Dynamic Parameters**: Year-specific rates and thresholds
 - **Multi-Year Calculations**: Support for 2024, 2025, 2026
 - **Backward Compatibility**: Maintains existing functionality
 
-### 9.5 UI/UX Refinements
+### 9.6 Prepayment Calculation Fixes
+- **GeenVermeerdering Logic**: Fixed calculation for short book years
+- **Quarterly Rate Integration**: Proper use of deduction rates in calculations
+- **Spread Strategy**: Correct distribution across available quarters
+- **Concentration Strategies**: Proper fallback logic for unavailable quarters
+
+### 9.7 UI/UX Refinements
 - **Color Consistency**: Reduced color palette in Step 4
 - **Component Reuse**: Leverages existing calculation components
 - **Responsive Design**: Improved layout and mobile experience
+- **Due Date Display**: Integrated due dates with prepayment fields
+- **Calculation Detail Display**: Fixed missing vermeerdering details for short periods
 
 ---
 
 ## 10. Future Enhancements
 
 - Additional tax credits and deductions
-- Advanced prepayment optimization algorithms
 - Integration with accounting software
-- Multi-year planning capabilities
 - Export functionality (PDF, Excel)
 - Multi-language support
-- Real-time collaboration features
-- Advanced validation and error handling
 
 *For detailed calculation documentation, see `CALCULATION_DOCUMENTATION.md`*

@@ -101,12 +101,16 @@
           [readonly]="true"
           [title]="'Origineel (Stap 2)'"
           [isExpanded]="true"
+          [bookYearInfo]="bookYearInfo"
+          [latestPrepaymentDates]="latestPrepaymentDates"
         ></app-prepayment>
         <app-prepayment
           [data]="prepayments"
           [readonly]="true"
           [title]="'Simulatie'"
           [isExpanded]="true"
+          [bookYearInfo]="bookYearInfo"
+          [latestPrepaymentDates]="latestPrepaymentDates"
           (dataChange)="onPrepaymentsDataChange($event)"
         ></app-prepayment>
       </div>

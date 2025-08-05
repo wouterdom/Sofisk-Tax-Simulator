@@ -18,11 +18,15 @@
       </div>
     </div>
     
+
+    
     <!-- Voorafbetalingen Section -->
     <div [uiClass]="'card'">
       <app-prepayment
         [data]="voorafbetalingen"
         [isExpanded]="voorafbetalingenOpen"
+        [bookYearInfo]="bookYearInfo"
+        [latestPrepaymentDates]="latestPrepaymentDates"
         (expandedChange)="voorafbetalingenOpen = $event"
         (dataChange)="onVoorafbetalingenDataChange($event)"
       ></app-prepayment>

@@ -12,6 +12,7 @@ import {
   PrepaymentCalculationGoal 
 } from '../types/tax-data.types';
 import { PrepaymentService } from './prepayment.service';
+import { BookYearInfo } from './book-year-calculator.service';
 
 /**
  * Applies the de minimis rule to determine if a vermeerdering amount should be zero
@@ -43,6 +44,7 @@ export interface CoreEngineInput {
   prepaymentConcentration: PrepaymentConcentration;
   prepaymentStrategy: PrepaymentStrategy;
   taxYear?: string; // Optional tax year parameter
+  bookYearInfo?: BookYearInfo; // Book year information for prepayment calculations
 }
 
 export interface CoreEngineOutput {
@@ -210,7 +212,8 @@ export function runCoreEngine(input: CoreEngineInput, prepaymentService: Prepaym
     separateAssessment,
     input.isSmallCompanyFirstThreeYears,
     input.prepaymentConcentration,
-    taxYear
+    taxYear,
+    input.bookYearInfo
   );
 
   return {

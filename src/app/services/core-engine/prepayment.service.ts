@@ -8,6 +8,7 @@ import {
   getQuarterlyRates,
   getVermeerderingsPercentage
 } from './parameters';
+import { BookYearInfo } from './book-year-calculator.service';
 
 @Injectable({
   providedIn: 'root'
@@ -33,7 +34,8 @@ export class PrepaymentService {
     separateAssessment: number,
     isSmallCompany: boolean,
     concentration: PrepaymentConcentration = 'spread',
-    taxYear: string = '2025'
+    taxYear: string = '2025',
+    bookYearInfo?: BookYearInfo
   ): Prepayments {
     try {
       this.logger.debug('Calculating suggested prepayments', {
@@ -60,6 +62,12 @@ export class PrepaymentService {
 
       const params = getTaxYearParameters(taxYear);
       const quarterlyRates = getQuarterlyRates(taxYear);
+      
+      // Handle short book years - adjust prepayments based on available quarters
+      if (bookYearInfo && bookYearInfo.isShortBookYear) {
+        this.logger.info('Short book year detected, adjusting prepayments for', bookYearInfo.quartersInBookYear, 'quarters');
+        return this.calculateShortBookYearPrepayments(goal, taxIncreaseBase, separateAssessment, concentration, taxYear, bookYearInfo);
+      }
       
       switch (goal) {
         case 'GeenVermeerdering': {
@@ -231,5 +239,175 @@ export class PrepaymentService {
 
   calculateTotalPrepayments(prepayments: Prepayments): number {
     return prepayments.va1 + prepayments.va2 + prepayments.va3 + prepayments.va4;
+  }
+
+  /**
+   * Calculate suggested prepayments for short book years
+   */
+  private calculateShortBookYearPrepayments(
+    goal: PrepaymentCalculationGoal,
+    taxIncreaseBase: number,
+    separateAssessment: number,
+    concentration: PrepaymentConcentration,
+    taxYear: string,
+    bookYearInfo: BookYearInfo
+  ): Prepayments {
+    const quarters = bookYearInfo.quartersInBookYear;
+    const params = getTaxYearParameters(taxYear);
+    const quarterlyRates = getQuarterlyRates(taxYear);
+    
+    // Start with all zeros
+    let result: Prepayments = { va1: 0, va2: 0, va3: 0, va4: 0 };
+    
+    // Determine which prepayment fields should be used based on quarters
+    const activeFields: (keyof Prepayments)[] = [];
+    switch (quarters) {
+      case 1:
+        activeFields.push('va4');
+        break;
+      case 2:
+        activeFields.push('va3', 'va4');
+        break;
+      case 3:
+        activeFields.push('va2', 'va3', 'va4');
+        break;
+      case 4:
+        activeFields.push('va1', 'va2', 'va3', 'va4');
+        break;
+      default:
+        this.logger.warn('Invalid number of quarters for short book year:', quarters);
+        return result;
+    }
+
+    switch (goal) {
+      case 'GeenVermeerdering': {
+        // Calculate base increase amount (9% of tax increase base)
+        const baseVermeerdering = Math.max(0, taxIncreaseBase * params.STANDARD_INCREASE_RATE);
+        
+        switch (concentration) {
+          case 'none':
+            return result;
+          case 'spread': {
+            // Calculate total deduction rate for active quarters
+            const totalDeductionRate = activeFields.reduce((sum: number, field: keyof Prepayments) => {
+              switch (field) {
+                case 'va1': return sum + quarterlyRates.Q1;
+                case 'va2': return sum + quarterlyRates.Q2;
+                case 'va3': return sum + quarterlyRates.Q3;
+                case 'va4': return sum + quarterlyRates.Q4;
+                default: return sum;
+              }
+            }, 0);
+            
+            // Calculate total prepayment needed to offset the vermeerdering
+            const totalPrepayment = baseVermeerdering / totalDeductionRate;
+            
+            // Distribute evenly across available quarters
+            const amountPerQuarter = totalPrepayment / quarters;
+            activeFields.forEach(field => {
+              result[field] = amountPerQuarter;
+            });
+            break;
+          }
+          case 'q1':
+            if (activeFields.includes('va1')) {
+              result.va1 = baseVermeerdering / quarterlyRates.Q1;
+            } else if (activeFields.includes('va2')) {
+              result.va2 = baseVermeerdering / quarterlyRates.Q2;
+            } else if (activeFields.includes('va3')) {
+              result.va3 = baseVermeerdering / quarterlyRates.Q3;
+            } else if (activeFields.includes('va4')) {
+              result.va4 = baseVermeerdering / quarterlyRates.Q4;
+            }
+            break;
+          case 'q2':
+            if (activeFields.includes('va2')) {
+              result.va2 = baseVermeerdering / quarterlyRates.Q2;
+            } else if (activeFields.includes('va3')) {
+              result.va3 = baseVermeerdering / quarterlyRates.Q3;
+            } else if (activeFields.includes('va4')) {
+              result.va4 = baseVermeerdering / quarterlyRates.Q4;
+            }
+            break;
+          case 'q3':
+            if (activeFields.includes('va3')) {
+              result.va3 = baseVermeerdering / quarterlyRates.Q3;
+            } else if (activeFields.includes('va4')) {
+              result.va4 = baseVermeerdering / quarterlyRates.Q4;
+            }
+            break;
+          case 'q4':
+            if (activeFields.includes('va4')) {
+              result.va4 = baseVermeerdering / quarterlyRates.Q4;
+            }
+            break;
+        }
+        break;
+      }
+
+      case 'SaldoNul': {
+        const saldo2 = taxIncreaseBase;
+        const result1508 = separateAssessment;
+        const mBase = Math.max(0, saldo2 * params.STANDARD_INCREASE_RATE);
+
+        function solvePrepayment(dRate: number): number {
+          const thresh = (saldo2 + result1508);
+          if (thresh * dRate >= mBase) {
+            return thresh;
+          }
+          return (saldo2 + result1508 + mBase) / (1 + dRate);
+        }
+
+        switch (concentration) {
+          case 'none':
+            return result;
+          case 'spread': {
+            // Use the total rate for all available quarters
+            const totalRate = activeFields.reduce((sum: number, field: keyof Prepayments) => {
+              switch (field) {
+                case 'va1': return sum + quarterlyRates.Q1;
+                case 'va2': return sum + quarterlyRates.Q2;
+                case 'va3': return sum + quarterlyRates.Q3;
+                case 'va4': return sum + quarterlyRates.Q4;
+                default: return sum;
+              }
+            }, 0);
+            
+            const totalPrepayment = solvePrepayment(totalRate);
+            const amountPerQuarter = totalPrepayment / quarters;
+            
+            activeFields.forEach(field => {
+              result[field] = amountPerQuarter;
+            });
+            break;
+          }
+          case 'q1':
+            if (activeFields.includes('va1')) result.va1 = solvePrepayment(quarterlyRates.Q1);
+            else if (activeFields.includes('va2')) result.va2 = solvePrepayment(quarterlyRates.Q2);
+            else if (activeFields.includes('va3')) result.va3 = solvePrepayment(quarterlyRates.Q3);
+            else if (activeFields.includes('va4')) result.va4 = solvePrepayment(quarterlyRates.Q4);
+            break;
+          case 'q2':
+            if (activeFields.includes('va2')) result.va2 = solvePrepayment(quarterlyRates.Q2);
+            else if (activeFields.includes('va3')) result.va3 = solvePrepayment(quarterlyRates.Q3);
+            else if (activeFields.includes('va4')) result.va4 = solvePrepayment(quarterlyRates.Q4);
+            break;
+          case 'q3':
+            if (activeFields.includes('va3')) result.va3 = solvePrepayment(quarterlyRates.Q3);
+            else if (activeFields.includes('va4')) result.va4 = solvePrepayment(quarterlyRates.Q4);
+            break;
+          case 'q4':
+            if (activeFields.includes('va4')) result.va4 = solvePrepayment(quarterlyRates.Q4);
+            break;
+        }
+        break;
+      }
+      
+      default:
+        this.logger.warn('Unknown prepayment goal, returning zero prepayments', { goal });
+        return result;
+    }
+
+    return this.clampPrepayments(result);
   }
 }

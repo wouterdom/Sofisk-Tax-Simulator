@@ -1,7 +1,7 @@
 # Belgian Corporate Tax Calculation Documentation
 
 ## Overview
-This document explains the calculation methodology implemented in the Sofisk Tax Simulator for Belgian corporate tax calculations. The system handles the complete tax calculation process from input data to final tax liability, including prepayment optimization and penalty calculations.
+This document explains the calculation methodology implemented in the Sofisk Tax Simulator for Belgian corporate tax calculations. The system handles the complete tax calculation process from input data to final tax liability, including prepayment optimization and penalty calculations. The system now fully supports short book years (verkorte boekjaren) with adjusted calculations and dynamic UI display.
 
 ---
 
@@ -124,10 +124,23 @@ Current Prepayments = VA1 + VA2 + VA3 + VA4
 ```
 
 ### 2.3 Vermeerdering Calculation
-The vermeerdering is calculated as 9% of Saldo 2 (the tax base):
+The vermeerdering is calculated as 9% of Saldo 2 (the tax base) for normal book years:
 
 ```
 Raw Vermeerdering = MAX(0, Saldo 2 × 9%)
+```
+
+**For Short Book Years:**
+The vermeerdering rate is adjusted based on the available quarters:
+
+- **1-quarter book year**: Uses VA4 rate (6%)
+- **2-quarter book year**: Average of VA3 and VA4 rates (7%)
+- **3-quarter book year**: Average of VA2, VA3, and VA4 rates (8%)
+- **4-quarter book year**: Standard rate (9%)
+
+```
+Adjusted Vermeerdering Rate = Average of available quarterly rates
+Raw Vermeerdering = MAX(0, Saldo 2 × Adjusted Vermeerdering Rate)
 ```
 
 ### 2.4 De-minimis Rule
@@ -150,9 +163,17 @@ VA3 Deduction = VA3 × 8%
 VA4 Deduction = VA4 × 6%
 ```
 
+**For Short Book Years:**
+Only the prepayments for available quarters are considered:
+
+- **1-quarter book year**: Only VA4 deduction
+- **2-quarter book year**: VA3 and VA4 deductions
+- **3-quarter book year**: VA2, VA3, and VA4 deductions
+- **4-quarter book year**: All deductions (normal)
+
 ### 2.6 Final Vermeerdering
 ```
-Prepayment Deductions = -(VA1 × 12% + VA2 × 10% + VA3 × 8% + VA4 × 6%)
+Prepayment Deductions = -(Sum of available VA deductions)
 Vermeerdering Total = MAX(0, Adjusted Vermeerdering + Prepayment Deductions)
 ```
 
@@ -190,6 +211,69 @@ Required Prepayments = Final Tax Due × 90%
 Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 ```
 
+### 3.3 Short Book Year Prepayment Optimization
+
+**For "GeenVermeerdering" (Avoid Penalties) Goal:**
+
+**Spread Strategy:**
+```
+Total Deduction Rate = Sum of available quarterly rates
+Total Prepayment Needed = Base Vermeerdering / Total Deduction Rate
+Amount Per Quarter = Total Prepayment Needed / Number of Quarters
+```
+
+**Example for 3-quarter book year:**
+- Available rates: Q2 (10%) + Q3 (8%) + Q4 (6%) = 24%
+- Base vermeerdering: €150
+- Total prepayment needed: €150 / 0.24 = €625
+- Amount per quarter: €625 / 3 = €208.33
+
+**Concentration Strategies:**
+```
+Prepayment Amount = Base Vermeerdering / Quarterly Rate of Target Quarter
+```
+
+If target quarter is not available, fallback to earliest available quarter.
+
+**For "SaldoNul" (Zero Balance) Goal:**
+Uses the same `solvePrepayment` function but with adjusted total rate for available quarters.
+
+---
+
+## Chapter 4: Short Book Year Support
+
+### 4.1 Book Year Detection
+The system automatically detects short book years based on period duration:
+
+```
+Months Between = End Date - Start Date (in months)
+Is Short Book Year = Months Between < 12
+Quarters In Book Year = CEILING(Months Between / 3)
+```
+
+### 4.2 Dynamic UI Display
+Based on the number of quarters, only relevant prepayment fields are shown:
+
+- **1-quarter book year**: Only VA4 field
+- **2-quarter book year**: VA3 and VA4 fields
+- **3-quarter book year**: VA2, VA3, and VA4 fields
+- **4-quarter book year**: All fields (VA1, VA2, VA3, VA4)
+
+### 4.3 Due Date Calculation
+Due dates are calculated based on the actual book year structure:
+
+**Normal Book Year (12 months):**
+- VA1: 10th day of 4th month
+- VA2: 10th day of 7th month
+- VA3: 10th day of 10th month
+- VA4: 20th day of last month
+
+**Short Book Year:**
+Due dates are calculated based on the actual quarters available in the book year period.
+
+### 4.4 Calculation Detail Display
+The "Detail van de berekening" section dynamically adjusts to show only relevant prepayment rows and the correct vermeerdering calculation breakdown for short book years.
+
 ---
 
 ## Prepayment Calculation Business Logic
@@ -198,12 +282,14 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 - **Detail van de berekening**: Shows calculation using **original prepayment values** (committed prepayments)
 - **Purpose**: Display the current tax situation with existing prepayments
 - **Data source**: `committedPrepayments` from TaxData
+- **Short book year support**: Only shows relevant prepayment fields based on book year type
 
 ### Step 3: Simulation Mode
 - **Detail van de berekening**: Shows calculation using **simulated prepayment values** (suggested prepayments)
 - **Purpose**: Display what the tax situation would be with optimized prepayments
 - **Data source**: `suggestedPrepayments` from calculation results
 - **Original values display**: Always shows a separate screen with the original values (step 2 scenario)
+- **Short book year support**: Optimized prepayments respect the book year structure
 
 ### Navigation Logic
 - **Step 2 → Step 3**: Automatically switches to simulation mode
@@ -216,6 +302,7 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 2. **Step 3**: Use `suggestedPrepayments` for detailed calculation display
 3. **Step 3**: Always show original values in a separate section
 4. **Navigation**: Handle commit/discard logic when going back from step 3 to step 2
+5. **Short book year**: All calculations respect the actual book year structure
 
 ---
 
@@ -223,20 +310,21 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 
 ### Data Flow
 1. User inputs data in declaration sections
-2. Section totals are calculated automatically
-3. ResterendResultaat is calculated: ResultaatVanHetBelastbareTijdperkTotal - BestanddelenVhResultaatAftrekbeperking
-4. GrondslagVoorBerekeningKorf is calculated: ResterendResultaat - AftrekkenVanDeResterendeWinstTotal
-5. Korfbeperking is applied to AftrekkenResterendeWinstKorfbeperkingTotal using GrondslagVoorBerekeningKorf
-6. BelastbareWinstGewoonTarief is calculated: GrondslagVoorBerekeningKorf - LimitedAftrekkenResterendeWinstKorfbeperkingTotal + BestanddelenVhResultaatAftrekbeperking
-7. Tax rates are applied based on eligibility (20% reduced rate for first €100,000 if applicable)
-8. Saldo 1 is calculated: Main tax calculation (reduced rate + standard rate)
-9. Voorheffingen are deducted (with Code 1830 limited to Saldo 1)
-10. Saldo 2 is calculated: Saldo 1 - Limited Code 1830 - Code 1840
-11. Vermeerdering is calculated (9% of Saldo 2) with de-minimis rule applied
-12. Prepayment deductions are subtracted from vermeerdering
-13. Code 1508 tax is calculated separately (10% of liquidatiereserve)
-14. Final tax due is calculated: Saldo 2 - Total Prepayments + Vermeerdering + Code 1508 Tax
-15. Results are displayed in real-time
+2. System detects book year type (normal vs. short)
+3. Section totals are calculated automatically
+4. ResterendResultaat is calculated: ResultaatVanHetBelastbareTijdperkTotal - BestanddelenVhResultaatAftrekbeperking
+5. GrondslagVoorBerekeningKorf is calculated: ResterendResultaat - AftrekkenVanDeResterendeWinstTotal
+6. Korfbeperking is applied to AftrekkenResterendeWinstKorfbeperkingTotal using GrondslagVoorBerekeningKorf
+7. BelastbareWinstGewoonTarief is calculated: GrondslagVoorBerekeningKorf - LimitedAftrekkenResterendeWinstKorfbeperkingTotal + BestanddelenVhResultaatAftrekbeperking
+8. Tax rates are applied based on eligibility (20% reduced rate for first €100,000 if applicable)
+9. Saldo 1 is calculated: Main tax calculation (reduced rate + standard rate)
+10. Voorheffingen are deducted (with Code 1830 limited to Saldo 1)
+11. Saldo 2 is calculated: Saldo 1 - Limited Code 1830 - Code 1840
+12. Vermeerdering is calculated (adjusted rate for short book years) with de-minimis rule applied
+13. Prepayment deductions are subtracted from vermeerdering (only available quarters for short book years)
+14. Code 1508 tax is calculated separately (10% of liquidatiereserve)
+15. Final tax due is calculated: Saldo 2 - Total Prepayments + Vermeerdering + Code 1508 Tax
+16. Results are displayed in real-time with dynamic UI based on book year type
 
 ### Key Features
 - **Reactive calculations**: All calculations update automatically when data changes
@@ -245,6 +333,9 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 - **Multiple input methods**: Manual entry, previous year basis, or file upload
 - **De-minimis rule**: Prevents small amounts from triggering additional charges
 - **Small company exception**: No vermeerdering for first three years
+- **Short book year support**: Full support for periods less than 12 months
+- **Dynamic UI**: Only relevant prepayment fields shown based on book year type
+- **Due date integration**: Prepayment due dates displayed inline with input fields
 
 ### Validation Rules
 - All monetary values are handled as numbers
@@ -252,6 +343,8 @@ Shortfall = MAX(0, Required Prepayments - Current Prepayments)
 - Korfbeperking ensures section 6 deductions don't exceed limits
 - De-minimis rule prevents small vermeerdering amounts
 - Code 1830 is limited to Saldo 1 to prevent over-deduction
+- Book year validation ensures proper period structure
+- Short book year calculations respect actual quarter availability
 
 ### Section Structure
 The current section structure is:
@@ -269,8 +362,28 @@ The current section structure is:
 - **Reduced rate**: 20% (first €100,000 if eligible)
 - **Standard rate**: 25% (amount above €100,000 or full amount if not eligible)
 - **Liquidatiereserve**: 10%
-- **Vermeerdering**: 9% of Saldo 2 (subject to de-minimis rule)
+- **Vermeerdering**: 9% of Saldo 2 for normal book years (adjusted for short book years)
 - **Prepayment deductions**: 12% (Q1), 10% (Q2), 8% (Q3), 6% (Q4)
+
+### Short Book Year Examples
+
+**3-Month Book Year (1 quarter):**
+- Available prepayment: VA4 only
+- Vermeerdering rate: 6% (VA4 rate)
+- Due date: Based on actual book year end
+- UI: Shows only VA4 field with integrated due date
+
+**6-Month Book Year (2 quarters):**
+- Available prepayments: VA3, VA4
+- Vermeerdering rate: 7% (average of VA3 and VA4 rates)
+- Due dates: Based on actual quarters
+- UI: Shows VA3 and VA4 fields with integrated due dates
+
+**9-Month Book Year (3 quarters):**
+- Available prepayments: VA2, VA3, VA4
+- Vermeerdering rate: 8% (average of VA2, VA3, and VA4 rates)
+- Due dates: Based on actual quarters
+- UI: Shows VA2, VA3, and VA4 fields with integrated due dates
 
 ---
 
@@ -281,3 +394,5 @@ The following features are planned for future implementation:
 - Integration with accounting software
 - Multi-year planning capabilities
 - Advanced reporting and analysis tools
+- Enhanced short book year scenarios
+- Additional prepayment optimization strategies

@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DeclarationSection } from '../services/types/tax-data.types';
 import { CalculationDetailsComponent } from '../components/calculation-details.component';
@@ -27,6 +27,7 @@ import { FormattedNumberInputComponent } from '../components/formatted-number-in
   standalone: true,
   imports: [
     CurrencyPipe,
+    DatePipe,
     FormsModule, CalculationDetailsComponent,
     PrepaymentComponent, UIClassDirective, FormattedNumberInputComponent
   ],
@@ -55,6 +56,10 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
   };
   voorafbetalingenOpen = true;
   
+  // Book year information
+  bookYearInfo: any = null;
+  latestPrepaymentDates: any = null;
+  
 
   protected override handleDataChange(data: any): void {
     if (data) {
@@ -63,6 +68,15 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
       this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
       // Always update the UI fields to the latest committed prepayments
       this.voorafbetalingen = this.taxDataService.getCommittedPrepayments();
+      
+      // Get book year information
+      this.bookYearInfo = this.taxDataService.getBookYearInfo();
+      this.latestPrepaymentDates = this.taxDataService.getLatestPrepaymentDates();
+      
+      // Debug logging for short book year issue
+      console.log('Book year info:', this.bookYearInfo);
+      console.log('Latest prepayment dates:', this.latestPrepaymentDates);
+      console.log('Period data:', this.taxDataService.getData()?.periodData);
     }
   }
 
@@ -127,6 +141,27 @@ export class VereenvoudigdeAangifteComponent extends BaseTaxComponent {
     } else {
       return 'Te betalen belastingen'; // When it's 0, keep as taxes to be paid
     }
+  }
+
+  // Book year helper methods
+  getBookYearTypeDescription(): string {
+    return this.taxDataService.getBookYearTypeDescription();
+  }
+
+  getShortBookYearPrepaymentDescription(): string {
+    return this.taxDataService.getShortBookYearPrepaymentDescription();
+  }
+
+  isShortBookYear(): boolean {
+    return this.taxDataService.isShortBookYear();
+  }
+
+  isLongBookYear(): boolean {
+    return this.taxDataService.isLongBookYear();
+  }
+
+  isNormalBookYear(): boolean {
+    return this.taxDataService.isNormalBookYear();
   }
 
   /**

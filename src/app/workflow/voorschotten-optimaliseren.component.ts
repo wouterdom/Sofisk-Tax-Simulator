@@ -42,12 +42,20 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
   // Track if prepayments have been modified
   public hasModifiedPrepayments = false;
 
+  // Book year information for prepayment display
+  public bookYearInfo: any = null;
+  public latestPrepaymentDates: any = null;
+
   public showCommitDialog: boolean = false;
   private commitCallback: ((proceed: boolean) => void) | null = null;
 
   protected override onInit(): void {
     // Always get the last committed values for the original column
     this.originalPrepayments = this.taxDataService.getCommittedPrepayments();
+    
+    // Get book year information for prepayment display
+    this.bookYearInfo = this.taxDataService.getBookYearInfo();
+    this.latestPrepaymentDates = this.taxDataService.getLatestPrepaymentDates();
     
     // Trigger an initial calculation to ensure simulation values are calculated immediately
     const currentData = this.taxDataService.getData();
@@ -65,6 +73,11 @@ export class VoorschottenOptimaliserenComponent extends BaseTaxComponent {
       this.calculationGoal = data.prepaymentCalculationGoal;
       this.prepaymentConcentration = data.prepaymentConcentration;
       this.isSmallCompanyFirstThreeYears = data.isSmallCompanyFirstThreeYears;
+      
+      // Update book year information
+      this.bookYearInfo = this.taxDataService.getBookYearInfo();
+      this.latestPrepaymentDates = this.taxDataService.getLatestPrepaymentDates();
+      
       this.checkIfModified();
     }
   }

@@ -29,6 +29,7 @@ import {
   InvoermethodeData
 } from '../types/tax-data.types';
 import { PrepaymentService } from './prepayment.service';
+import { BookYearCalculatorService, BookYearInfo, ShortBookYearPrepaymentRules, LongBookYearPrepaymentRules, LatestPrepaymentDates } from './book-year-calculator.service';
 
 // Re-export core engine functions and types for external use
 export { runCoreEngine } from './calculation-core';
@@ -57,6 +58,7 @@ export class MainCalculationEngineService {
   public readonly isLoading$: Observable<boolean>;
 
   private prepaymentService = inject(PrepaymentService);
+  private bookYearCalculatorService = inject(BookYearCalculatorService);
 
   constructor() {
     this.dataSubject = new BehaviorSubject<TaxData | null>(null);
@@ -86,7 +88,8 @@ export class MainCalculationEngineService {
       prepaymentCalculationGoal: data.prepaymentCalculationGoal,
       prepaymentConcentration: data.prepaymentConcentration,
       prepaymentStrategy: data.prepaymentStrategy,
-      taxYear: this.getCurrentTaxYear()
+      taxYear: this.getCurrentTaxYear(),
+      bookYearInfo: this.getBookYearInfo() ?? undefined
     };
     const core = runCoreEngine(coreInput, this.prepaymentService);
 
@@ -106,11 +109,9 @@ export class MainCalculationEngineService {
       code1840: core.code1840,
       prepayments: prepaymentsForDetail, // Use appropriate prepayments based on step
       isSmallCompanyFirstThreeYears: data.isSmallCompanyFirstThreeYears,
-      taxYear: this.getCurrentTaxYear() // Pass the current tax year to use correct parameters
+      taxYear: this.getCurrentTaxYear(), // Pass the current tax year to use correct parameters
+      bookYearInfo: this.getBookYearInfo() ?? undefined // Pass book year information for adjusted calculations, ensure undefined not null
     });
-
-    // Calculate final tax payable based on the prepayments used for this step
-    // For Step 3, we need to recalculate using suggested prepayments
     // For Step 2, we need to recalculate using current prepayments
     const currentTaxYearParams = this.getCurrentTaxYearParameters();
     const finalTaxPayableForStep = this.getCurrentStep() === 3 
@@ -304,6 +305,122 @@ export class MainCalculationEngineService {
   }
 
   // =========================================
+  // Book Year Calculation Methods
+  // =========================================
+
+  /**
+   * Get book year information for the current period
+   */
+  public getBookYearInfo(): BookYearInfo | null {
+    const currentData = this.getData();
+    if (!currentData?.periodData?.startDate || !currentData?.periodData?.endDate) {
+      return null;
+    }
+    
+    return this.bookYearCalculatorService.calculateBookYearInfo(
+      currentData.periodData.startDate,
+      currentData.periodData.endDate
+    );
+  }
+
+  /**
+   * Get short book year prepayment rules
+   */
+  public getShortBookYearPrepayments(): ShortBookYearPrepaymentRules | null {
+    const bookYearInfo = this.getBookYearInfo();
+    if (!bookYearInfo?.isShortBookYear) {
+      return null;
+    }
+    
+    const taxYear = this.getCurrentTaxYear();
+    return this.bookYearCalculatorService.calculateShortBookYearPrepayments(bookYearInfo, taxYear);
+  }
+
+  /**
+   * Get long book year prepayment rules
+   */
+  public getLongBookYearPrepayments(): LongBookYearPrepaymentRules | null {
+    const bookYearInfo = this.getBookYearInfo();
+    if (!bookYearInfo?.isLongBookYear) {
+      return null;
+    }
+    
+    const taxYear = this.getCurrentTaxYear();
+    return this.bookYearCalculatorService.calculateLongBookYearPrepayments(bookYearInfo, taxYear);
+  }
+
+  /**
+   * Get latest prepayment dates
+   */
+  public getLatestPrepaymentDates(): LatestPrepaymentDates | null {
+    const bookYearInfo = this.getBookYearInfo();
+    if (!bookYearInfo) {
+      return null;
+    }
+    
+    return this.bookYearCalculatorService.calculateLatestPrepaymentDates(bookYearInfo);
+  }
+
+  /**
+   * Get adjusted vermeerdering percentage for short book years
+   */
+  public getAdjustedVermeerderingPercentage(): number {
+    const shortBookYearRules = this.getShortBookYearPrepayments();
+    if (shortBookYearRules) {
+      return shortBookYearRules.vermeerderingPercentage;
+    }
+    
+    // Return normal vermeerdering percentage for normal/long book years
+    return this.getVermeerderingsPercentage();
+  }
+
+  /**
+   * Check if current period is a short book year
+   */
+  public isShortBookYear(): boolean {
+    const bookYearInfo = this.getBookYearInfo();
+    return bookYearInfo?.isShortBookYear ?? false;
+  }
+
+  /**
+   * Check if current period is a long book year
+   */
+  public isLongBookYear(): boolean {
+    const bookYearInfo = this.getBookYearInfo();
+    return bookYearInfo?.isLongBookYear ?? false;
+  }
+
+  /**
+   * Check if current period is a normal book year
+   */
+  public isNormalBookYear(): boolean {
+    const bookYearInfo = this.getBookYearInfo();
+    return bookYearInfo?.isNormalBookYear ?? false;
+  }
+
+  /**
+   * Get book year type description
+   */
+  public getBookYearTypeDescription(): string {
+    const bookYearInfo = this.getBookYearInfo();
+    if (!bookYearInfo) {
+      return '';
+    }
+    return this.bookYearCalculatorService.getBookYearTypeDescription(bookYearInfo);
+  }
+
+  /**
+   * Get short book year prepayment description
+   */
+  public getShortBookYearPrepaymentDescription(): string {
+    const bookYearInfo = this.getBookYearInfo();
+    if (!bookYearInfo) {
+      return '';
+    }
+    return this.bookYearCalculatorService.getShortBookYearPrepaymentDescription(bookYearInfo);
+  }
+
+  // =========================================
   // Period and Invoermethode Management
   // =========================================
 
@@ -381,7 +498,9 @@ export class MainCalculationEngineService {
         isSmallCompanyFirstThreeYears: currentData.isSmallCompanyFirstThreeYears,
         prepaymentCalculationGoal: currentData.prepaymentCalculationGoal,
         prepaymentConcentration: currentData.prepaymentConcentration,
-        prepaymentStrategy: currentData.prepaymentStrategy
+        prepaymentStrategy: currentData.prepaymentStrategy,
+        taxYear: this.getCurrentTaxYear(),
+        bookYearInfo: this.getBookYearInfo() ?? undefined
       };
       const core = runCoreEngine(coreInput, this.prepaymentService);
 

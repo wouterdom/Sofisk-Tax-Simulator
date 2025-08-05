@@ -1,5 +1,6 @@
 import { FIELD_CODES, TAX_CONSTANTS, getTaxYearParameters } from '../services/core-engine/parameters';
 import { CalculationRow, Prepayments } from '../services/types/tax-data.types';
+import { BookYearInfo } from '../services/core-engine/book-year-calculator.service';
 
 /**
  * Input required by the builder to assemble all row arrays that make up the
@@ -14,6 +15,7 @@ export interface CalculationDetailParams {
   prepayments: Prepayments;
   isSmallCompanyFirstThreeYears: boolean;
   taxYear?: string; // Add tax year parameter
+  bookYearInfo?: BookYearInfo; // Add book year information for adjusted calculations
 }
 
 export interface CalculationDetailResult {
@@ -47,6 +49,7 @@ export function buildCalculationDetail({
   prepayments,
   isSmallCompanyFirstThreeYears,
   taxYear = '2025', // Default to 2025 if not provided
+  bookYearInfo,
 }: CalculationDetailParams): CalculationDetailResult {
   // Get the correct parameters for the tax year
   const params = getTaxYearParameters(taxYear);
@@ -124,13 +127,31 @@ export function buildCalculationDetail({
       result: 0,
     });
   } else {
-    berekeningVermeerdering = Math.max(0, saldo2 * params.STANDARD_INCREASE_RATE);
+    // Use adjusted vermeerdering rate for short book years
+    const vermeerderingRate = bookYearInfo?.isShortBookYear 
+      ? calculateAdjustedVermeerderingRate(bookYearInfo, taxYear)
+      : params.STANDARD_INCREASE_RATE;
+    
+    berekeningVermeerdering = Math.max(0, saldo2 * vermeerderingRate);
 
     const { va1, va2, va3, va4 } = prepayments;
-    const deduction1 = -(va1 * params.QUARTERLY_RATES.Q1);
-    const deduction2 = -(va2 * params.QUARTERLY_RATES.Q2);
-    const deduction3 = -(va3 * params.QUARTERLY_RATES.Q3);
-    const deduction4 = -(va4 * params.QUARTERLY_RATES.Q4);
+    
+    // For short book years, only use relevant prepayments based on quarters
+    let deduction1 = 0, deduction2 = 0, deduction3 = 0, deduction4 = 0;
+    
+    if (bookYearInfo?.isShortBookYear) {
+      const quarters = bookYearInfo.quartersInBookYear;
+      if (quarters >= 1) deduction4 = -(va4 * params.QUARTERLY_RATES.Q4);
+      if (quarters >= 2) deduction3 = -(va3 * params.QUARTERLY_RATES.Q3);
+      if (quarters >= 3) deduction2 = -(va2 * params.QUARTERLY_RATES.Q2);
+      if (quarters >= 4) deduction1 = -(va1 * params.QUARTERLY_RATES.Q1);
+    } else {
+      // Normal book year - use all prepayments
+      deduction1 = -(va1 * params.QUARTERLY_RATES.Q1);
+      deduction2 = -(va2 * params.QUARTERLY_RATES.Q2);
+      deduction3 = -(va3 * params.QUARTERLY_RATES.Q3);
+      deduction4 = -(va4 * params.QUARTERLY_RATES.Q4);
+    }
 
     totaalAftrekVA = deduction1 + deduction2 + deduction3 + deduction4;
     aftrekDoorVoorafbetalingen = totaalAftrekVA;
@@ -144,42 +165,94 @@ export function buildCalculationDetail({
       vermeerderingBeforeDeMinimis <= deMinimisThreshold ? 0 : vermeerderingBeforeDeMinimis;
     deMinimisApplied = vermeerderingTotal === 0 && vermeerderingBeforeDeMinimis > 0;
 
+    // Build vermeerdering rows based on book year type
     vermeerderingRows = [
       {
         code: '',
         description: 'Berekening vermeerdering',
         amount: saldo2,
-        rate: params.STANDARD_INCREASE_RATE * 100,
+        rate: vermeerderingRate * 100,
         result: berekeningVermeerdering,
-      },
-      {
-        code: '1811',
-        description: 'Voorafbetaling 1',
-        amount: va1,
-        rate: params.QUARTERLY_RATES.Q1 * 100,
-        result: deduction1,
-      },
-      {
-        code: '1812',
-        description: 'Voorafbetaling 2',
-        amount: va2,
-        rate: params.QUARTERLY_RATES.Q2 * 100,
-        result: deduction2,
-      },
-      {
-        code: '1813',
-        description: 'Voorafbetaling 3',
-        amount: va3,
-        rate: params.QUARTERLY_RATES.Q3 * 100,
-        result: deduction3,
-      },
-      {
-        code: '1814',
-        description: 'Voorafbetaling 4',
-        amount: va4,
-        rate: params.QUARTERLY_RATES.Q4 * 100,
-        result: deduction4,
-      },
+      }
+    ];
+
+    // Add prepayment rows based on book year type
+    if (bookYearInfo?.isShortBookYear) {
+      const quarters = bookYearInfo.quartersInBookYear;
+      
+      // Add prepayment rows in reverse order (VA4 first, then VA3, etc.)
+      if (quarters >= 4) {
+        vermeerderingRows.push({
+          code: '1811',
+          description: 'Voorafbetaling 1',
+          amount: va1,
+          rate: params.QUARTERLY_RATES.Q1 * 100,
+          result: deduction1,
+        });
+      }
+      if (quarters >= 3) {
+        vermeerderingRows.push({
+          code: '1812',
+          description: 'Voorafbetaling 2',
+          amount: va2,
+          rate: params.QUARTERLY_RATES.Q2 * 100,
+          result: deduction2,
+        });
+      }
+      if (quarters >= 2) {
+        vermeerderingRows.push({
+          code: '1813',
+          description: 'Voorafbetaling 3',
+          amount: va3,
+          rate: params.QUARTERLY_RATES.Q3 * 100,
+          result: deduction3,
+        });
+      }
+      if (quarters >= 1) {
+        vermeerderingRows.push({
+          code: '1814',
+          description: 'Voorafbetaling 4',
+          amount: va4,
+          rate: params.QUARTERLY_RATES.Q4 * 100,
+          result: deduction4,
+        });
+      }
+    } else {
+      // Normal book year - show all prepayments
+      vermeerderingRows.push(
+        {
+          code: '1811',
+          description: 'Voorafbetaling 1',
+          amount: va1,
+          rate: params.QUARTERLY_RATES.Q1 * 100,
+          result: deduction1,
+        },
+        {
+          code: '1812',
+          description: 'Voorafbetaling 2',
+          amount: va2,
+          rate: params.QUARTERLY_RATES.Q2 * 100,
+          result: deduction2,
+        },
+        {
+          code: '1813',
+          description: 'Voorafbetaling 3',
+          amount: va3,
+          rate: params.QUARTERLY_RATES.Q3 * 100,
+          result: deduction3,
+        },
+        {
+          code: '1814',
+          description: 'Voorafbetaling 4',
+          amount: va4,
+          rate: params.QUARTERLY_RATES.Q4 * 100,
+          result: deduction4,
+        }
+      );
+    }
+
+    // Add summary rows
+    vermeerderingRows.push(
       {
         code: '',
         description: 'Totaal aftrek VA',
@@ -200,8 +273,8 @@ export function buildCalculationDetail({
         amount: 0,
         rate: null,
         result: vermeerderingBeforeDeMinimis,
-      },
-    ];
+      }
+    );
   }
 
   /* -------------------------------------------------------------
@@ -263,3 +336,34 @@ export function buildCalculationDetail({
     deMinimisApplied,
   };
 }
+
+/**
+ * Calculate adjusted vermeerdering rate for short book years
+ */
+function calculateAdjustedVermeerderingRate(bookYearInfo: BookYearInfo, taxYear: string): number {
+  if (!bookYearInfo.isShortBookYear) {
+    return getTaxYearParameters(taxYear).STANDARD_INCREASE_RATE;
+  }
+  
+  const quarterlyRates = getTaxYearParameters(taxYear).QUARTERLY_RATES;
+  const quarters = bookYearInfo.quartersInBookYear;
+  
+  switch (quarters) {
+    case 1:
+      // Only VA 4: use VA 4 rate
+      return quarterlyRates.Q4;
+    case 2:
+      // VA 3 and VA 4: average of VA 3 and VA 4 rates
+      return (quarterlyRates.Q3 + quarterlyRates.Q4) / 2;
+    case 3:
+      // VA 2, VA 3, VA 4: average of VA 2, VA 3, and VA 4 rates
+      return (quarterlyRates.Q2 + quarterlyRates.Q3 + quarterlyRates.Q4) / 3;
+    case 4:
+      // All VA: use normal vermeerdering percentage
+      return getTaxYearParameters(taxYear).STANDARD_INCREASE_RATE;
+    default:
+      return getTaxYearParameters(taxYear).STANDARD_INCREASE_RATE;
+  }
+}
+
+
